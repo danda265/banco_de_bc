@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌊 Banco de Balneário! — Multiplayer Online</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07192e;--card:#0d2a47;--card2:#112f52;--borda:#1a4a72;
+  --verde:#00E5A0;--verde2:#00b87a;--verde-bg:#001f12;
+  --azul:#3DB8FF;--azul2:#1a9de0;--azul-bg:#001828;
+  --amarelo:#FFD23F;--amarelo2:#e0b020;--amarelo-bg:#221600;
+  --vermelho:#FF4757;--vermelho-bg:#220608;
+  --roxo:#B08FFF;--roxo2:#7050c0;
+  --cinza:#2e5070;--cinza2:#4a7090;
+  --branco:#e0f0ff;--texto:#90b8d8;
+}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min-height:100vh;overflow-x:hidden}
+
+/* ====== ANIMAÇÃO DADO 3D ====== */
+.dado-cena{width:70px;height:70px;perspective:300px;flex-shrink:0}
+.dado-cubo{width:70px;height:70px;position:relative;transform-style:preserve-3d;
+  transform:rotateX(-20deg) rotateY(30deg)}
+.dado-face{position:absolute;width:70px;height:70px;
+  background:linear-gradient(145deg,#ffffff,#d8e8f8);
+  border:3px solid #b0c8e0;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;font-size:2.2rem;
+  box-shadow:inset 0 2px 6px rgba(255,255,255,.9),inset 0 -2px 4px rgba(0,0,0,.1)}
+.dado-face.f1{transform:rotateY(  0deg) translateZ(35px)}
+.dado-face.f2{transform:rotateY(180deg) translateZ(35px)}
+.dado-face.f3{transform:rotateY( 90deg) translateZ(35px)}
+.dado-face.f4{transform:rotateY(-90deg) translateZ(35px)}
+.dado-face.f5{transform:rotateX( 90deg) translateZ(35px)}
+.dado-face.f6{transform:rotateX(-90deg) translateZ(35px)}
+
+@keyframes spinDado{
+  0%  {transform:rotateX(0deg)   rotateY(0deg)   rotateZ(0deg)   scale3d(1,1,1)}
+  15% {transform:rotateX(120deg) rotateY(80deg)  rotateZ(60deg)  scale3d(1.3,1.3,1.3)}
+  30% {transform:rotateX(240deg) rotateY(200deg) rotateZ(90deg)  scale3d(1.1,1.1,1.1)}
+  45% {transform:rotateX(360deg) rotateY(310deg) rotateZ(180deg) scale3d(1.25,1.25,1.25)}
+  60% {transform:rotateX(440deg) rotateY(420deg) rotateZ(240deg) scale3d(1.05,1.05,1.05)}
+  75% {transform:rotateX(500deg) rotateY(490deg) rotateZ(270deg) scale3d(1.15,1.15,1.15)}
+  90% {transform:rotateX(var(--fx)) rotateY(var(--fy)) rotateZ(10deg) scale3d(1.02,1.02,1.02)}
+  100%{transform:rotateX(var(--fx)) rotateY(var(--fy)) rotateZ(0deg)  scale3d(1,1,1)}
+}
+.dado-cubo.girando{animation:spinDado 1.2s cubic-bezier(.17,.67,.35,1.1) forwards}
+
+/* Posições finais do dado por face */
+/* face 1 = frente */   /* face 2 = trás */  /* face 3 = direita */
+/* face 4 = esquerda */ /* face 5 = topo */  /* face 6 = base */
+
+/* ====== SCREENS ====== */
+.screen{display:none;animation:fadeUp .3s ease}
+.screen.active{display:flex;flex-direction:column}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ====== LOBBY ====== */
+#tela-lobby{min-height:100vh;align-items:center;justify-content:center;padding:2rem 1rem;
+  background:radial-gradient(ellipse at 50% -5%,#1a4a80 0%,var(--bg) 60%)}
+.logo{text-align:center;margin-bottom:1.8rem}
+.logo-emoji{font-size:3rem;display:block;animation:onda 2.5s ease-in-out infinite}
+@keyframes onda{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.logo-h{font-family:'Fredoka One',cursive;font-size:3rem;color:var(--branco);line-height:1;
+  text-shadow:0 0 40px #3DB8FF44}
+.logo-h em{color:var(--amarelo);font-style:normal}
+.logo-sub{color:var(--azul);font-size:.8rem;font-weight:800;letter-spacing:3px;margin-top:.3rem}
+.badge-free{display:inline-flex;align-items:center;gap:.3rem;background:var(--verde-bg);
+  border:1.5px solid var(--verde);color:var(--verde);padding:.2rem .8rem;border-radius:20px;
+  font-size:.7rem;font-weight:800;margin-top:.5rem}
+.lbox{background:var(--card);border:1.5px solid var(--borda);border-radius:18px;padding:1.3rem;
+  margin-bottom:.8rem;width:100%;max-width:440px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.lbox-t{font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--branco);margin-bottom:.9rem;
+  display:flex;align-items:center;gap:.4rem}
+.inp{width:100%;background:var(--bg);border:2px solid var(--borda);border-radius:10px;
+  padding:.65rem .9rem;font-size:1rem;font-family:'Nunito',sans-serif;color:var(--branco);
+  outline:none;transition:border-color .2s;margin-bottom:.6rem}
+.inp:focus{border-color:var(--azul)}
+.inp::placeholder{color:var(--cinza)}
+.av-row{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.7rem}
+.av{width:44px;height:44px;border-radius:50%;border:2.5px solid var(--borda);font-size:1.5rem;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  background:var(--card2);transition:all .15s}
+.av.sel{border-color:var(--azul);background:var(--azul-bg);transform:scale(1.12)}
+.btn{width:100%;padding:.8rem;border:none;border-radius:12px;font-family:'Fredoka One',cursive;
+  font-size:1.15rem;cursor:pointer;transition:all .15s;margin-bottom:.5rem;letter-spacing:.3px}
+.btn:active{transform:scale(.97)}
+.btn-criar{background:linear-gradient(135deg,var(--verde),var(--azul2));color:#07192e;
+  box-shadow:0 4px 20px #00E5A044}
+.btn-entrar{background:linear-gradient(135deg,var(--azul),var(--roxo2));color:#fff;
+  box-shadow:0 4px 20px #3DB8FF33}
+.btn-criar:hover{box-shadow:0 6px 28px #00E5A066}
+.bncc{background:var(--verde-bg);border:1.5px solid var(--verde2);border-radius:10px;
+  padding:.6rem 1rem;font-size:.74rem;color:var(--verde);font-weight:700;
+  display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;width:100%;max-width:440px}
+
+/* ====== SALA ESPERA ====== */
+#tela-sala{min-height:100vh;align-items:center;padding:2rem 1rem;
+  background:radial-gradient(ellipse at 50% -5%,#1a4a80 0%,var(--bg) 60%)}
+.sala-h{text-align:center;margin-bottom:1.5rem;width:100%}
+.sala-titulo{font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--branco);margin-bottom:.8rem}
+.cod-box{display:inline-flex;align-items:center;gap:1rem;background:var(--card);
+  border:2px solid var(--amarelo);border-radius:14px;padding:.7rem 1.4rem;margin-bottom:.5rem}
+.cod-label{font-size:.68rem;font-weight:800;color:var(--amarelo);letter-spacing:2px;text-transform:uppercase}
+.cod-val{font-family:'Fredoka One',cursive;font-size:2.8rem;color:var(--amarelo);letter-spacing:8px}
+.btn-cop{background:var(--amarelo-bg);border:1.5px solid var(--amarelo);color:var(--amarelo);
+  padding:.3rem .9rem;border-radius:8px;font-weight:800;font-size:.78rem;cursor:pointer;
+  font-family:'Nunito',sans-serif}
+.sala-dica{color:var(--cinza2);font-size:.82rem;margin-bottom:.4rem}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;width:100%;max-width:440px;margin-bottom:1.3rem}
+.slot{background:var(--card);border:2px dashed var(--borda);border-radius:14px;padding:.9rem;
+  text-align:center;min-height:95px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.slot.ok{border-style:solid}
+.slot-av{font-size:2.2rem;margin-bottom:.25rem}
+.slot-nm{font-weight:800;font-size:.86rem;color:var(--branco)}
+.slot-tag{font-size:.62rem;padding:.1rem .5rem;border-radius:6px;margin-top:.2rem;font-weight:700}
+.slot-vazio{color:var(--cinza);font-size:.8rem}
+.btn-ini{background:linear-gradient(135deg,var(--verde),var(--verde2));color:var(--bg);
+  padding:.9rem 2rem;border:none;border-radius:14px;font-family:'Fredoka One',cursive;
+  font-size:1.25rem;cursor:pointer;box-shadow:0 4px 20px #00E5A044;width:100%;max-width:440px}
+.btn-ini:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+.status-sala{color:var(--cinza2);font-size:.82rem;margin-bottom:.8rem;text-align:center}
+
+/* ====== TELA JOGO ====== */
+#tela-jogo{flex-direction:row;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sb{width:285px;min-width:285px;background:var(--card);border-right:1.5px solid var(--borda);
+  display:flex;flex-direction:column;height:100vh;overflow:hidden;transition:left .3s}
+.sb-top{padding:.75rem 1rem;background:var(--card2);border-bottom:1px solid var(--borda);flex-shrink:0}
+.sb-game{font-family:'Fredoka One',cursive;font-size:1rem;color:var(--amarelo)}
+.sb-vez{font-size:.73rem;color:var(--cinza2);margin-top:.1rem}
+.sb-tabs{display:flex;border-bottom:1px solid var(--borda);flex-shrink:0}
+.stab{flex:1;padding:.5rem .2rem;border:none;background:transparent;color:var(--cinza2);
+  font-size:.65rem;font-weight:800;cursor:pointer;border-bottom:2px solid transparent;
+  transition:all .15s;font-family:'Nunito',sans-serif;letter-spacing:.3px;text-transform:uppercase}
+.stab.on{color:var(--azul);border-bottom-color:var(--azul);background:var(--azul-bg)}
+.sb-body{flex:1;overflow-y:auto;padding:.7rem}
+.sb-body::-webkit-scrollbar{width:3px}
+.sb-body::-webkit-scrollbar-thumb{background:var(--borda);border-radius:2px}
+
+/* cards jogadores */
+.pjc{background:var(--card2);border:1.5px solid var(--borda);border-radius:10px;
+  padding:.65rem;margin-bottom:.45rem;transition:border-color .2s,box-shadow .2s}
+.pjc.vez{border-color:var(--verde);box-shadow:0 0 0 2px #00E5A018}
+.pjc.eu{border-color:var(--azul)}
+.pjc-row{display:flex;align-items:center;gap:.5rem}
+.pjc-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:1.1rem;border:2px solid;flex-shrink:0}
+.pjc-nome{font-weight:800;font-size:.82rem;color:var(--branco);flex:1}
+.pjc-saldo{font-family:'Fredoka One',cursive;font-size:.95rem}
+.pjc-pos{font-size:.67rem;color:var(--cinza2);margin-top:.15rem}
+.vez-tag{font-size:.58rem;background:var(--verde-bg);color:var(--verde);
+  padding:.1rem .35rem;border-radius:4px;font-weight:800;margin-left:auto}
+.pjc-ps{display:flex;flex-wrap:wrap;gap:.18rem;margin-top:.35rem}
+.pbadge{font-size:.55rem;padding:.08rem .3rem;border-radius:3px;font-weight:700;color:#fff}
+
+/* banco */
+.banco-bloco{margin-bottom:.9rem}
+.banco-h{font-size:.68rem;font-weight:800;color:var(--cinza2);text-transform:uppercase;
+  letter-spacing:1.5px;margin-bottom:.45rem}
+.sinp{width:100%;background:var(--bg);border:1.5px solid var(--borda);border-radius:8px;
+  padding:.5rem .7rem;font-size:.88rem;font-family:'Nunito',sans-serif;color:var(--branco);
+  outline:none;margin-bottom:.4rem}
+.sinp:focus{border-color:var(--azul)}
+.ssel{width:100%;background:var(--bg);border:1.5px solid var(--borda);border-radius:8px;
+  padding:.5rem .7rem;font-size:.88rem;font-family:'Nunito',sans-serif;color:var(--branco);
+  outline:none;margin-bottom:.4rem}
+.sbtn{width:100%;padding:.5rem;border:none;border-radius:8px;font-weight:800;
+  font-size:.84rem;cursor:pointer;font-family:'Nunito',sans-serif;margin-bottom:.3rem}
+.sbtn-v{background:var(--verde);color:var(--bg)}
+.sbtn-a{background:var(--azul);color:#fff}
+.ext-row{display:flex;justify-content:space-between;align-items:center;
+  padding:.32rem 0;border-bottom:1px solid var(--borda);font-size:.74rem}
+.ext-row:last-child{border:none}
+.ep{color:var(--verde);font-weight:700}.en{color:var(--vermelho);font-weight:700}
+
+/* imóveis */
+.im-row{background:var(--card2);border-radius:8px;padding:.5rem .65rem;
+  margin-bottom:.35rem;display:flex;align-items:center;gap:.5rem;border-left:3px solid}
+.im-nome{font-weight:700;font-size:.78rem;color:var(--branco);flex:1}
+.im-d{font-size:.65rem;color:var(--cinza2)}
+.im-v{font-size:.7rem;font-weight:700}
+
+/* log */
+.log-row{font-size:.7rem;padding:.32rem .45rem;border-radius:6px;
+  margin-bottom:.28rem;background:var(--card2);line-height:1.4;border-left:2px solid var(--borda)}
+.log-row.le{border-left-color:var(--verde)}
+.log-row.ls{border-left-color:var(--vermelho)}
+.log-row.lv{border-left-color:var(--azul)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.main-top{background:var(--card2);border-bottom:1px solid var(--borda);
+  padding:.55rem .8rem;display:flex;align-items:center;gap:.6rem;flex-shrink:0;flex-wrap:wrap}
+.pill{padding:.22rem .7rem;border-radius:20px;font-size:.72rem;font-weight:800}
+.pill-sala{background:var(--azul-bg);border:1px solid var(--azul);color:var(--azul);cursor:pointer}
+.pill-turno{background:var(--amarelo-bg);border:1px solid var(--amarelo);color:var(--amarelo)}
+.pill-vez{background:linear-gradient(90deg,var(--verde),var(--azul2));color:#07192e;
+  animation:pulseGlow 1.4s infinite}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 #00E5A044}50%{box-shadow:0 0 14px 5px #00E5A022}}
+.pill-outro{color:var(--cinza2);font-size:.72rem;margin-left:auto}
+
+/* TABULEIRO */
+.board-wrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;
+  padding:.8rem;background:var(--bg)}
+.board-wrap::-webkit-scrollbar{width:5px;height:5px}
+.board-wrap::-webkit-scrollbar-thumb{background:var(--borda);border-radius:3px}
+#svg-board{width:700px;min-width:700px;height:700px}
+
+/* BARRA AÇÃO */
+.acao{background:var(--card2);border-top:1px solid var(--borda);
+  padding:.65rem .8rem;display:flex;align-items:center;gap:.7rem;flex-shrink:0}
+.btn-dado-big{background:linear-gradient(135deg,var(--azul),var(--roxo2));color:#fff;
+  border:none;padding:.6rem 1.3rem;border-radius:12px;font-family:'Fredoka One',cursive;
+  font-size:1.05rem;cursor:pointer;transition:all .15s;box-shadow:0 4px 16px #3DB8FF33;
+  white-space:nowrap;flex-shrink:0}
+.btn-dado-big:disabled{opacity:.3;cursor:not-allowed;box-shadow:none}
+.btn-dado-big:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 6px 24px #3DB8FF55}
+.acao-txt{flex:1}
+.acao-t{font-weight:800;color:var(--branco);font-size:.9rem}
+.acao-s{color:var(--cinza2);font-size:.73rem}
+.btn-mini{padding:.4rem .7rem;border:1.5px solid var(--borda);border-radius:8px;
+  background:var(--card);color:var(--texto);font-size:.72rem;font-weight:700;
+  cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap}
+.btn-mini:hover{border-color:var(--azul);color:var(--azul)}
+
+/* MODAIS */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:300;
+  align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(8px)}
+.ov.open{display:flex;animation:fadeUp .2s ease}
+.mbox{background:var(--card);border:1.5px solid var(--borda);border-radius:20px;padding:1.4rem;
+  max-width:430px;width:100%;max-height:88vh;overflow-y:auto;
+  box-shadow:0 24px 80px rgba(0,0,0,.8)}
+.mbox::-webkit-scrollbar{width:4px}
+.mbox::-webkit-scrollbar-thumb{background:var(--borda);border-radius:2px}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem}
+.mh h3{font-family:'Fredoka One',cursive;font-size:1.25rem;color:var(--branco)}
+.mc{background:var(--card2);border:1px solid var(--borda);width:28px;height:28px;
+  border-radius:50%;color:var(--cinza2);font-size:.9rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;border:none}
+.pcard{border-radius:14px;padding:1.1rem;text-align:center;margin-bottom:.9rem;border:2px solid}
+.pcard-em{font-size:2.8rem;margin-bottom:.3rem}
+.pcard-nm{font-family:'Fredoka One',cursive;font-size:1.2rem}
+.pcard-pr{font-family:'Fredoka One',cursive;font-size:2rem;margin:.3rem 0}
+.pcard-al{border-radius:8px;padding:.42rem .75rem;font-size:.82rem;font-weight:700;margin:.3rem 0}
+.bm{width:100%;padding:.72rem;border:none;border-radius:10px;font-family:'Fredoka One',cursive;
+  font-size:1rem;cursor:pointer;margin-bottom:.42rem;transition:transform .1s}
+.bm:active{transform:scale(.97)}
+.bm-c{background:var(--verde);color:var(--bg)}
+.bm-p{background:var(--card2);color:var(--texto);border:1px solid var(--borda)}
+.recibo{border:2px dashed var(--borda);border-radius:12px;padding:.9rem;background:var(--bg)}
+.r-t{text-align:center;font-family:'Fredoka One',cursive;font-size:1rem;color:var(--branco);margin-bottom:.2rem}
+.r-n{text-align:center;font-size:.63rem;color:var(--cinza2);margin-bottom:.65rem}
+.r-l{display:flex;justify-content:space-between;padding:.26rem 0;border-bottom:1px dashed var(--borda);font-size:.8rem}
+.r-l:last-child{border:none;font-weight:700}
+.rp{color:var(--verde)}.rn{color:var(--vermelho)}
+.cartam{border-radius:14px;padding:1.1rem;text-align:center;margin-bottom:.85rem}
+.cartam-em{font-size:3rem;margin-bottom:.35rem}
+.cartam-ti{font-family:'Fredoka One',cursive;font-size:1.2rem;margin-bottom:.25rem}
+.cartam-de{font-size:.87rem;line-height:1.5;margin-bottom:.4rem;opacity:.85}
+.cartam-va{font-family:'Fredoka One',cursive;font-size:1.8rem}
+.tag-b{background:var(--verde-bg);color:var(--verde);font-size:.63rem;font-weight:800;
+  padding:.16rem .5rem;border-radius:5px;display:inline-block;margin-bottom:.4rem}
+.qp{font-weight:800;font-size:.93rem;line-height:1.5;margin-bottom:.85rem;color:var(--branco)}
+.qops{display:grid;gap:.42rem}
+.qop{background:var(--card2);border:2px solid var(--borda);border-radius:10px;
+  padding:.62rem .88rem;font-family:'Nunito',sans-serif;font-weight:700;font-size:.86rem;
+  cursor:pointer;text-align:left;color:var(--texto);transition:all .15s}
+.qop:hover:not(:disabled){border-color:var(--azul);color:var(--branco)}
+.qop.ok{background:var(--verde-bg);border-color:var(--verde);color:var(--verde)}
+.qop.err{background:var(--vermelho-bg);border-color:var(--vermelho);color:var(--vermelho)}
+.qfb{border-radius:10px;padding:.75rem;margin-top:.65rem;font-size:.84rem;line-height:1.5}
+
+/* FIM */
+#tela-fim{min-height:100vh;align-items:center;justify-content:center;padding:2rem 1rem;
+  background:radial-gradient(ellipse at 50% -5%,#1a4a80 0%,var(--bg) 60%)}
+.fim-wrap{width:100%;max-width:420px;text-align:center}
+.fim-tr{font-size:5rem;margin-bottom:.4rem}
+.fim-h{font-family:'Fredoka One',cursive;font-size:2.5rem;color:var(--branco)}
+.fim-v{color:var(--amarelo);font-size:.95rem;font-weight:700;margin-bottom:1.4rem}
+.rank-card{background:var(--card);border:1.5px solid var(--borda);border-radius:16px;
+  padding:1.1rem;margin-bottom:.9rem;text-align:left}
+.rki{display:flex;align-items:center;gap:.55rem;padding:.55rem 0;border-bottom:1px solid var(--borda)}
+.rki:last-child{border:none}
+.rki-pos{font-family:'Fredoka One',cursive;font-size:1.4rem;width:34px}
+.rki-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:1.2rem;border:2px solid;flex-shrink:0}
+.rki-info{flex:1}
+.rki-nm{font-weight:800;color:var(--branco);font-size:.88rem}
+.rki-det{font-size:.7rem;color:var(--cinza2)}
+.rki-s{font-family:'Fredoka One',cursive;font-size:.95rem}
+.aprendeu{background:var(--card);border:1.5px solid var(--borda);border-radius:14px;
+  padding:1.1rem;margin-bottom:.9rem;text-align:left}
+.aprendeu h3{font-family:'Fredoka One',cursive;font-size:1rem;color:var(--branco);margin-bottom:.6rem}
+.aprendeu li{font-size:.82rem;line-height:1.8;padding-left:.4rem}
+.btn-novo{background:linear-gradient(135deg,var(--verde),var(--azul2));color:var(--bg);
+  padding:.82rem 2rem;border:none;border-radius:14px;font-family:'Fredoka One',cursive;
+  font-size:1.15rem;cursor:pointer;width:100%;margin-bottom:.5rem}
+
+/* MOBILE */
+.sb-mob-btn{display:none;position:fixed;bottom:1rem;right:1rem;z-index:80;
+  background:var(--azul);border:none;color:#fff;width:46px;height:46px;
+  border-radius:50%;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px #3DB8FF55}
+@media(max-width:860px){
+  .sb{position:fixed;left:-290px;z-index:60;box-shadow:4px 0 24px rgba(0,0,0,.6)}
+  .sb.aberta{left:0}
+  .sb-mob-btn{display:flex;align-items:center;justify-content:center}
+  #svg-board{width:100%;min-width:0;height:auto}
+}
+
+/* SPINNER CARREGANDO */
+.loading-over{position:fixed;inset:0;background:var(--bg);z-index:999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+.spinner{width:50px;height:50px;border:4px solid var(--borda);border-top-color:var(--azul);
+  border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-family:'Fredoka One',cursive;font-size:1.2rem;color:var(--azul)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-over" id="loading">
+  <div style="font-size:3rem">🌊</div>
+  <div class="spinner"></div>
+  <div class="loading-txt">Conectando ao Firebase...</div>
+  <div style="font-size:.78rem;color:var(--cinza2);max-width:280px;text-align:center">
+    Se demorar mais de 10s, verifique sua conexão com a internet.
+  </div>
+</div>
+
+<div id="app">
+
+<!-- LOBBY -->
+<div id="tela-lobby" class="screen">
+  <div class="logo">
+    <span class="logo-emoji">🌊</span>
+    <div class="logo-h">Banco de <em>Balneário!</em></div>
+    <div class="logo-sub">🎓 EDUCAÇÃO FINANCEIRA • 4º ANO EF</div>
+    <div class="badge-free">🆓 100% GRATUITO • ESCOLAS MUNICIPAIS DE BC</div>
+  </div>
+  <div class="lbox">
+    <div class="lbox-t">👤 Quem é você?</div>
+    <input class="inp" id="l-nome" placeholder="Seu nome (ex: João, Maria...)" maxlength="20">
+    <div style="font-size:.75rem;color:var(--cinza2);margin-bottom:.4rem">Escolha seu avatar:</div>
+    <div class="av-row" id="av-row"></div>
+  </div>
+  <div class="lbox">
+    <div class="lbox-t">🏠 Criar nova sala</div>
+    <div style="font-size:.8rem;color:var(--cinza2);margin-bottom:.8rem">Você será o anfitrião. Compartilhe o código com os amigos!</div>
+    <button class="btn btn-criar" onclick="criarSala()">🎮 Criar Sala de Jogo</button>
+  </div>
+  <div class="lbox">
+    <div class="lbox-t">🔗 Entrar em sala existente</div>
+    <input class="inp" id="l-codigo" placeholder="Código da sala (4 dígitos)" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')">
+    <button class="btn btn-entrar" onclick="entrarSala()">🚀 Entrar na Sala</button>
+  </div>
+  <div class="bncc">✅ BNCC: EF04MA24 • EF04MA25 • EF04MA26 — Balneário Camboriú • SC</div>
+</div>
+
+<!-- SALA ESPERA -->
+<div id="tela-sala" class="screen">
+  <div class="sala-h">
+    <div class="sala-titulo">🏖️ Sala de Jogo</div>
+    <div class="cod-box">
+      <div>
+        <div class="cod-label">Código da Sala</div>
+        <div class="cod-val" id="cod-show">----</div>
+      </div>
+      <button class="btn-cop" onclick="copiar()">📋 Copiar</button>
+    </div>
+    <div class="sala-dica">Compartilhe o código! Cada jogador entra no próprio celular/computador.</div>
+  </div>
+  <div class="slots" id="slots"></div>
+  <div class="status-sala" id="sala-status">Aguardando jogadores...</div>
+  <button class="btn-ini" id="btn-ini" disabled onclick="hostIniciar()">⏳ Aguardando jogadores...</button>
+  <button style="background:transparent;border:1px solid var(--borda);color:var(--cinza2);
+    padding:.5rem 1rem;border-radius:8px;cursor:pointer;font-family:'Nunito',sans-serif;
+    font-size:.85rem;margin-top:.7rem;width:100%;max-width:440px" onclick="sairSala()">← Sair da Sala</button>
+</div>
+
+<!-- JOGO -->
+<div id="tela-jogo" class="screen">
+  <div class="sb" id="sidebar">
+    <div class="sb-top">
+      <div class="sb-game">🌊 Banco de Balneário!</div>
+      <div class="sb-vez">Turno <span id="sb-turno">1</span> • <span id="sb-vez-nome">—</span></div>
+    </div>
+    <div class="sb-tabs">
+      <button class="stab on" id="tab-jog" onclick="aba('jog')">👥 Jogadores</button>
+      <button class="stab" id="tab-banco" onclick="aba('banco')">🏦 Banco</button>
+      <button class="stab" id="tab-im" onclick="aba('im')">🏠 Imóveis</button>
+      <button class="stab" id="tab-log" onclick="aba('log')">📋 Log</button>
+    </div>
+    <div class="sb-body" id="sb-body"></div>
+  </div>
+  <div class="main">
+    <div class="main-top">
+      <div class="pill pill-sala" onclick="mostrarCod()" title="Ver código">🔗 <span id="top-sala">----</span></div>
+      <div class="pill pill-turno">Turno <span id="top-turno">1</span></div>
+      <div class="pill pill-vez" id="minha-vez-pill" style="display:none">🎲 SUA VEZ!</div>
+      <div class="pill-outro" id="vez-outro"></div>
+    </div>
+    <div class="board-wrap">
+      <svg id="svg-board" viewBox="0 0 700 700" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="acao">
+      <!-- Dado 3D -->
+      <div class="dado-cena">
+        <div class="dado-cubo" id="dado3d">
+          <div class="dado-face f1">⚀</div>
+          <div class="dado-face f2">⚅</div>
+          <div class="dado-face f3">⚂</div>
+          <div class="dado-face f4">⚃</div>
+          <div class="dado-face f5">⚄</div>
+          <div class="dado-face f6">⚁</div>
+        </div>
+      </div>
+      <div class="dado-val-show" id="dado-num" style="font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--amarelo);min-width:32px;text-align:center">—</div>
+      <div class="acao-txt">
+        <div class="acao-t" id="acao-t">Aguardando...</div>
+        <div class="acao-s" id="acao-s">—</div>
+      </div>
+      <button class="btn-mini" onclick="aba('banco');document.getElementById('sidebar').classList.add('aberta')">💸 Banco</button>
+      <button class="btn-dado-big" id="btn-dado" onclick="rolarDado()" disabled>🎲 Rolar Dado!</button>
+    </div>
+  </div>
+  <button class="sb-mob-btn" onclick="document.getElementById('sidebar').classList.toggle('aberta')">☰</button>
+</div>
+
+<!-- FIM -->
+<div id="tela-fim" class="screen">
+  <div class="fim-wrap">
+    <div class="fim-tr">🏆</div>
+    <div class="fim-h">Fim de Jogo!</div>
+    <div class="fim-v" id="fim-venc">—</div>
+    <div class="rank-card" id="rank-final"></div>
+    <div class="aprendeu">
+      <h3>🎓 O que você aprendeu hoje:</h3>
+      <ul style="padding-left:1.1rem">
+        <li>💰 <strong>Receita</strong> = dinheiro que entra</li>
+        <li>💸 <strong>Despesa</strong> = dinheiro que sai</li>
+        <li>🏠 <strong>Aluguel</strong> = renda de imóvel</li>
+        <li>📈 <strong>Investimento</strong> = comprar para ganhar depois</li>
+        <li>🧮 <strong>Saldo</strong> = receita − despesa</li>
+        <li>🏦 <strong>Banco</strong> = guarda e movimenta dinheiro</li>
+        <li>🏛️ <strong>Imposto</strong> = contribuição para a cidade</li>
+      </ul>
+    </div>
+    <button class="btn-novo" onclick="location.reload()">🔄 Jogar de Novo!</button>
+  </div>
+</div>
+
+</div><!-- fim #app -->
+
+<!-- MODAIS -->
+<div class="ov" id="mod-prop"><div class="mbox">
+  <div class="mh"><h3 id="mod-prop-h">Propriedade</h3><button class="mc" onclick="fm('mod-prop')">✕</button></div>
+  <div id="mod-prop-b"></div>
+</div></div>
+
+<div class="ov" id="mod-carta"><div class="mbox">
+  <div class="mh"><h3>🃏 Carta Especial</h3><button class="mc" onclick="fm('mod-carta');proxTurno()">✕</button></div>
+  <div id="mod-carta-b"></div>
+  <button class="bm bm-p" style="margin-top:.7rem" onclick="fm('mod-carta');proxTurno()">✅ Entendido!</button>
+</div></div>
+
+<div class="ov" id="mod-quiz"><div class="mbox">
+  <div class="mh"><h3>🎓 Desafio Financeiro!</h3><button class="mc" onclick="fm('mod-quiz');proxTurno()">✕</button></div>
+  <div id="mod-quiz-b"></div>
+</div></div>
+
+<div class="ov" id="mod-recibo"><div class="mbox">
+  <div class="mh"><h3>🧾 Comprovante</h3><button class="mc" onclick="fm('mod-recibo');proxTurno()">✕</button></div>
+  <div id="mod-recibo-b"></div>
+  <button class="bm bm-p" style="margin-top:.7rem" onclick="fm('mod-recibo');proxTurno()">✅ Fechar</button>
+</div></div>
+
+<div class="ov" id="mod-aluguel"><div class="mbox">
+  <div class="mh"><h3>💸 Cobrança de Aluguel</h3><button class="mc" onclick="fm('mod-aluguel');proxTurno()">✕</button></div>
+  <div id="mod-aluguel-b"></div>
+  <button class="bm bm-c" style="margin-top:.7rem" onclick="confirmarAluguel()">💰 Pagar Aluguel</button>
+</div></div>
+
+<div class="ov" id="mod-faliu"><div class="mbox" style="text-align:center">
+  <div style="font-size:3.5rem;margin-bottom:.4rem">😢</div>
+  <div style="font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--vermelho);margin-bottom:.4rem">Falência!</div>
+  <p id="mod-faliu-m" style="font-size:.88rem;line-height:1.6;margin-bottom:.9rem"></p>
+  <div style="background:var(--amarelo-bg);border:1px solid var(--amarelo);border-radius:10px;
+    padding:.75rem;text-align:left;font-size:.8rem;margin-bottom:.9rem">
+    💡 <strong>Lição:</strong> Controlar gastos é essencial! Quando a despesa supera a receita, ocorre a falência.
+  </div>
+  <button class="bm bm-p" onclick="fm('mod-faliu');proxTurno()">Continuar Jogo</button>
+</div></div>
+
+<div class="ov" id="mod-cod"><div class="mbox" style="text-align:center">
+  <div class="mh" style="justify-content:flex-end"><button class="mc" onclick="fm('mod-cod')">✕</button></div>
+  <div style="font-size:2rem;margin-bottom:.4rem">🔗</div>
+  <div style="font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--branco);margin-bottom:.4rem">Código da Sala</div>
+  <div style="font-family:'Fredoka One',cursive;font-size:3.5rem;color:var(--amarelo);letter-spacing:12px;margin-bottom:.4rem" id="mod-cod-val">----</div>
+  <p style="font-size:.8rem;color:var(--cinza2);margin-bottom:.9rem">Cada amigo entra em banco-balneario.html e digita este código!</p>
+  <button class="bm bm-c" onclick="copiar();fm('mod-cod')">📋 Copiar Código</button>
+  <button class="bm bm-p" onclick="fm('mod-cod')">Fechar</button>
+</div></div>
+
+<script>
+// =====================================================
+// CONFIGURAÇÃO FIREBASE
+// =====================================================
+// INSTRUÇÕES: Crie um projeto GRATUITO em https://console.firebase.google.com
+// 1. Clique "Adicionar projeto" → nome: banco-balneario
+// 2. Vá em "Realtime Database" → "Criar banco de dados" → "Modo de teste"
+// 3. Clique na engrenagem ⚙️ → "Configurações do projeto" → "Seus apps" → "Web"
+// 4. Copie as configurações e substitua abaixo:
+
+const FB_CONFIG = {
+  apiKey: "AIzaSyBR-LXbkYPH_X6UyeO2KpQRzf7g5pLgug0",
+
+  authDomain: "jogo-monetario.firebaseapp.com",
+
+  databaseURL: "https://jogo-monetario-default-rtdb.firebaseio.com",
+
+  projectId: "jogo-monetario",
+
+  storageBucket: "jogo-monetario.firebasestorage.app",
+
+  messagingSenderId: "743932708760",
+
+  appId: "1:743932708760:web:5549060ad9319618470ded",
+
+  measurementId: "G-H26CPCGJ6B"
+
+};
+
+// Initialize Firebase
+
+// MODO DEMO (sem Firebase): joga no mesmo navegador, abas diferentes
+// Se não configurar o Firebase acima, o jogo roda em modo demo local.
+let MODO_DEMO = false;
+
+let db = null;
+let codigoSala = null;
+let meuId = null;
+let meuAv = 0;
+let jogo = null;
+let aluguelPend = null;
+let quizAtivo = null;
+let salaRef = null;
+let jogoRef = null;
+
+// =====================================================
+// INIT FIREBASE
+// =====================================================
+try {
+  if(FB_CONFIG.apiKey && FB_CONFIG.apiKey !== "COLE_SUA_API_KEY_AQUI"){
+    firebase.initializeApp(FB_CONFIG);
+    db = firebase.database();
+    document.getElementById('loading').style.display = 'none';
+    irTela('tela-lobby');
+  } else {
+    throw new Error("Firebase não configurado");
+  }
+} catch(e) {
+  console.warn("Firebase não configurado — modo demo local", e);
+  MODO_DEMO = true;
+  document.getElementById('loading').innerHTML = `
+    <div style="font-size:2.5rem;margin-bottom:.5rem">🌊</div>
+    <div style="font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--amarelo);margin-bottom:.5rem">Modo Demo Local</div>
+    <div style="font-size:.82rem;color:var(--cinza2);max-width:320px;text-align:center;margin-bottom:1rem;line-height:1.6">
+      Firebase não configurado. O jogo roda localmente (mesma rede).<br>
+      Para jogo online global, configure o Firebase nas instruções dentro do HTML.
+    </div>
+    <button onclick="document.getElementById('loading').style.display='none';irTela('tela-lobby')"
+      style="background:var(--verde);color:var(--bg);border:none;padding:.7rem 1.5rem;
+      border-radius:10px;font-family:'Fredoka One',cursive;font-size:1rem;cursor:pointer">
+      🎮 Jogar em Demo Local
+    </button>`;
+}
+
+// =====================================================
+// DADOS DO JOGO
+// =====================================================
+const CASAS = [
+  {id:0,tipo:'inicio',nome:'INÍCIO',emoji:'🏁',cor:'#00E5A0',x:618,y:618},
+  {id:1,tipo:'propriedade',nome:'Praia Central',emoji:'🏖️',preco:300,aluguel:40,cor:'#3DB8FF',grupo:'praias',x:508,y:618},
+  {id:2,tipo:'propriedade',nome:'Rua do Comércio',emoji:'🛍️',preco:220,aluguel:28,cor:'#FFD23F',grupo:'comercio',x:398,y:618},
+  {id:3,tipo:'carta-sorte',nome:'Sorte ou Azar',emoji:'🃏',cor:'#B08FFF',x:288,y:618},
+  {id:4,tipo:'propriedade',nome:'Parque Figueira',emoji:'🌳',preco:250,aluguel:32,cor:'#00E5A0',grupo:'parques',x:178,y:618},
+  {id:5,tipo:'imposto',nome:'Taxa Municipal',emoji:'🏛️',cor:'#FF4757',valor:100,x:68,y:618},
+  {id:6,tipo:'propriedade',nome:'Beto Carreiro',emoji:'🎡',preco:500,aluguel:80,cor:'#FF4757',grupo:'turismo',x:50,y:508},
+  {id:7,tipo:'carta-sorte',nome:'Sorte ou Azar',emoji:'🃏',cor:'#B08FFF',x:50,y:418},
+  {id:8,tipo:'propriedade',nome:'Shopping BC',emoji:'🏬',preco:400,aluguel:55,cor:'#FFD23F',grupo:'comercio',x:50,y:328},
+  {id:9,tipo:'quiz',nome:'Quiz Financeiro',emoji:'🎓',cor:'#00E5A0',x:50,y:238},
+  {id:10,tipo:'propriedade',nome:'Aeroporto de BC',emoji:'✈️',preco:600,aluguel:90,cor:'#3DB8FF',grupo:'transporte',x:50,y:148},
+  {id:11,tipo:'imposto',nome:'IPTU',emoji:'📄',cor:'#FF4757',valor:80,x:68,y:58},
+  {id:12,tipo:'descanso',nome:'Férias em BC!',emoji:'😎',cor:'#FFD23F',x:178,y:50},
+  {id:13,tipo:'propriedade',nome:'Hotel Costa Norte',emoji:'🏨',preco:350,aluguel:48,cor:'#B08FFF',grupo:'turismo',x:288,y:50},
+  {id:14,tipo:'quiz',nome:'Quiz Financeiro',emoji:'🎓',cor:'#00E5A0',x:398,y:50},
+  {id:15,tipo:'propriedade',nome:'Píer de BC',emoji:'⛵',preco:280,aluguel:36,cor:'#3DB8FF',grupo:'praias',x:508,y:50},
+  {id:16,tipo:'carta-sorte',nome:'Sorte ou Azar',emoji:'🃏',cor:'#B08FFF',x:618,y:68},
+  {id:17,tipo:'propriedade',nome:'Orla Beira-Mar',emoji:'🌊',preco:450,aluguel:65,cor:'#3DB8FF',grupo:'praias',x:650,y:178},
+  {id:18,tipo:'propriedade',nome:'Mercado Municipal',emoji:'🛒',preco:200,aluguel:25,cor:'#FFD23F',grupo:'comercio',x:650,y:278},
+  {id:19,tipo:'quiz',nome:'Quiz Financeiro',emoji:'🎓',cor:'#00E5A0',x:650,y:368},
+  {id:20,tipo:'propriedade',nome:'Mirante do Morro',emoji:'🗻',preco:320,aluguel:44,cor:'#00E5A0',grupo:'parques',x:650,y:458},
+  {id:21,tipo:'imposto',nome:'Multa de Trânsito',emoji:'🚦',cor:'#FF4757',valor:60,x:650,y:548},
+  {id:22,tipo:'propriedade',nome:'Aqua Park',emoji:'💦',preco:380,aluguel:52,cor:'#FF4757',grupo:'turismo',x:618,y:638},
+  {id:23,tipo:'carta-sorte',nome:'Sorte ou Azar',emoji:'🃏',cor:'#B08FFF',x:508,y:660},
+];
+
+const CARTAS = [
+  {titulo:'Turista da Semana!',desc:'Você foi eleito o turista mais simpático de BC!',emoji:'🌟',tipo:'ganhar',valor:150},
+  {titulo:'Festival de Pesca!',desc:'Você vendeu seu peixe no festival. Ótimo negócio!',emoji:'🎣',tipo:'ganhar',valor:100},
+  {titulo:'Temporada de Verão!',desc:'Alta temporada! O banco distribui bônus para todos.',emoji:'☀️',tipo:'ganhar',valor:80},
+  {titulo:'Carro Quebrou!',desc:'Seu carro deu problema na SC-486. Pague ao mecânico.',emoji:'🚗',tipo:'pagar',valor:120},
+  {titulo:'Conta de Água Alta!',desc:'Ficou muito tempo no chuveiro. Pague a conta extra.',emoji:'💧',tipo:'pagar',valor:60},
+  {titulo:'Aniversário de BC!',desc:'A cidade comemora! O banco distribui presente para todos.',emoji:'🎂',tipo:'ganhar',valor:200},
+  {titulo:'Imprevisto Médico!',desc:'Visita ao médico inesperada. Saúde em primeiro lugar!',emoji:'🏥',tipo:'pagar',valor:90},
+  {titulo:'Venda de Artesanato!',desc:'Você vendeu artesanato na feirinha da orla.',emoji:'🎨',tipo:'ganhar',valor:70},
+  {titulo:'Passeio de Barco!',desc:'Você vendeu passeios de barco na temporada.',emoji:'⛵',tipo:'ganhar',valor:130},
+  {titulo:'Multa de Estacionamento!',desc:'Estacionou em local proibido na beira-mar.',emoji:'🅿️',tipo:'pagar',valor:50},
+  {titulo:'Prêmio de Escola!',desc:'Você ganhou um prêmio por bom desempenho!',emoji:'📚',tipo:'ganhar',valor:120},
+  {titulo:'Conserto de Computador!',desc:'Seu computador quebrou. Pague o técnico.',emoji:'💻',tipo:'pagar',valor:75},
+];
+
+const QUIZ = [
+  {p:'Se você tem R$ 50,00 e gasta R$ 23,00, quanto sobra?',ops:['R$ 27,00','R$ 37,00','R$ 17,00','R$ 47,00'],c:0,exp:'50 − 23 = 27. Sobram R$ 27,00!',bonus:100},
+  {p:'O que é uma DESPESA?',ops:['Dinheiro que você ganha','Dinheiro que você gasta','Seu salário','Seu imóvel'],c:1,exp:'Despesa é o dinheiro que SAI do seu bolso.',bonus:80},
+  {p:'Quer comprar brinquedo de R$80. Tem R$30. Quanto falta?',ops:['R$ 60,00','R$ 40,00','R$ 50,00','R$ 70,00'],c:2,exp:'80 − 30 = 50. Faltam R$ 50,00!',bonus:100},
+  {p:'O que é POUPANÇA?',ops:['Gastar tudo','Guardar para o futuro','Pedir emprestado','Pagar impostos'],c:1,exp:'Poupança é guardar dinheiro para usar no futuro!',bonus:80},
+  {p:'João ganhou R$200 e gastou R$150. Qual é o SALDO?',ops:['R$ 350,00','R$ 150,00','R$ 50,00','R$ 200,00'],c:2,exp:'Saldo = 200 − 150 = R$ 50,00.',bonus:120},
+  {p:'Qual é a moeda usada no Brasil?',ops:['Dólar','Peso','Real','Euro'],c:2,exp:'O dinheiro do Brasil é o REAL (R$), criado em 1994!',bonus:60},
+  {p:'3 notas de R$10 + 2 moedas de R$1 = quanto?',ops:['R$ 30,00','R$ 32,00','R$ 28,00','R$ 35,00'],c:1,exp:'3×10=30 + 2×1=2. Total: R$32,00!',bonus:100},
+  {p:'O que é LUCRO?',ops:['Perder dinheiro','Gastar tudo','Ganhar mais do que gastou','Pedir emprestado'],c:2,exp:'Lucro é vender por mais do que pagou!',bonus:80},
+  {p:'Ana tinha R$100, comprou livro R$35 e lanche R$12. Sobrou?',ops:['R$ 47,00','R$ 53,00','R$ 63,00','R$ 43,00'],c:1,exp:'100 − 35 − 12 = R$ 53,00!',bonus:120},
+  {p:'O que é RECEITA?',ops:['Uma comida','Dinheiro que entra','Uma dívida','Preço de produto'],c:1,exp:'Receita é todo dinheiro que ENTRA (salário, vendas...)',bonus:80},
+  {p:'Maria tem R$15. Comprou sorvete R$7. Quanto sobrou?',ops:['R$ 8,00','R$ 9,00','R$ 7,00','R$ 6,00'],c:0,exp:'15 − 7 = 8. Sobram R$ 8,00!',bonus:60},
+  {p:'O que é IMPOSTO?',ops:['Um brinquedo caro','Dinheiro que o cidadão paga ao governo','Um banco','Um empréstimo'],c:1,exp:'Imposto é o que pagamos para o governo manter escolas, ruas e hospitais!',bonus:80},
+];
+
+const CORES = ['#FF4757','#3DB8FF','#00E5A0','#FFD23F','#B08FFF','#FF9F43'];
+const AVATARES = ['🦁','🐬','🦋','🦅','🐠','🐧','🦊','🐸'];
+
+// =====================================================
+// INICIALIZAÇÃO AVATAR
+// =====================================================
+(function(){
+  const row = document.getElementById('av-row');
+  AVATARES.forEach((av,i)=>{
+    const d = document.createElement('div');
+    d.className='av'+(i===0?' sel':'');
+    d.textContent=av; d.onclick=()=>{
+      document.querySelectorAll('.av').forEach(x=>x.classList.remove('sel'));
+      d.classList.add('sel'); meuAv=i;
+    };
+    row.appendChild(d);
+  });
+})();
+
+// =====================================================
+// TELAS
+// =====================================================
+function irTela(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// =====================================================
+// FIREBASE HELPERS / DEMO HELPERS
+// =====================================================
+const _demo = {}; // armazenamento local para modo demo
+
+function fbSet(path, val){ 
+  if(MODO_DEMO){ setPath(_demo, path, val); return Promise.resolve(); }
+  return db.ref(path).set(val); 
+}
+function fbUpdate(path, val){ 
+  if(MODO_DEMO){ setPath(_demo, path, val); return Promise.resolve(); }
+  return db.ref(path).update(val); 
+}
+function fbGet(path){ 
+  if(MODO_DEMO){ return Promise.resolve({val:()=>getPath(_demo,path)}); }
+  return db.ref(path).get(); 
+}
+function fbOn(path, cb){ 
+  if(MODO_DEMO){
+    // polling simples para demo
+    let last = null;
+    const iv = setInterval(()=>{
+      const v = getPath(_demo,path);
+      const s = JSON.stringify(v);
+      if(s!==last){ last=s; cb({val:()=>v}); }
+    },800);
+    return ()=>clearInterval(iv);
+  }
+  const ref = db.ref(path);
+  ref.on('value', cb);
+  return ()=>ref.off('value', cb);
+}
+
+function setPath(obj, path, val){
+  const parts = path.replace(/^\//, '').split('/');
+  let cur = obj;
+  parts.forEach((p,i)=>{
+    if(i===parts.length-1){ cur[p]=val; }
+    else { if(!cur[p]||typeof cur[p]!=='object') cur[p]={}; cur=cur[p]; }
+  });
+}
+function getPath(obj, path){
+  const parts = path.replace(/^\//, '').split('/');
+  let cur = obj;
+  for(const p of parts){ if(!cur||typeof cur!=='object') return null; cur=cur[p]; }
+  return cur;
+}
+
+// =====================================================
+// SALA
+// =====================================================
+function gerarCodigo(){ return String(Math.floor(1000+Math.random()*9000)); }
+function hoje(){ return new Date().toLocaleDateString('pt-BR'); }
+
+async function criarSala(){
+  const nome = document.getElementById('l-nome').value.trim()||'Professor';
+  meuId = 'host_'+Date.now();
+  codigoSala = gerarCodigo();
+  const sala = {
+    codigo: codigoSala, iniciado: false, criado: Date.now(),
+    jogadores:{
+      [meuId]:{id:meuId,nome:nome,avatar:AVATARES[meuAv],cor:CORES[0],slot:0}
+    }
+  };
+  await fbSet('salas/'+codigoSala, sala);
+  document.getElementById('cod-show').textContent = codigoSala;
+  document.getElementById('mod-cod-val').textContent = codigoSala;
+  irTela('tela-sala');
+  escutarSala();
+}
+
+async function entrarSala(){
+  const nome = document.getElementById('l-nome').value.trim()||'Aluno';
+  const cod = document.getElementById('l-codigo').value.trim();
+  if(!cod||cod.length!==4){ toast('⚠️ Digite o código de 4 dígitos!'); return; }
+  const snap = await fbGet('salas/'+cod);
+  const sala = snap.val();
+  if(!sala){ toast('❌ Sala não encontrada! Confira o código.'); return; }
+  if(sala.iniciado){ toast('⚠️ Esse jogo já começou!'); return; }
+  const jogadores = sala.jogadores || {};
+  const qtd = Object.keys(jogadores).length;
+  if(qtd>=6){ toast('⚠️ Sala cheia (máx. 6 jogadores)!'); return; }
+  meuId = 'p'+Date.now();
+  codigoSala = cod;
+  await fbUpdate('salas/'+cod+'/jogadores/'+meuId,
+    {id:meuId,nome:nome,avatar:AVATARES[meuAv],cor:CORES[qtd%CORES.length],slot:qtd});
+  document.getElementById('cod-show').textContent = cod;
+  document.getElementById('mod-cod-val').textContent = cod;
+  irTela('tela-sala');
+  escutarSala();
+}
+
+let escutarSalaOff = null;
+function escutarSala(){
+  if(escutarSalaOff) escutarSalaOff();
+  escutarSalaOff = fbOn('salas/'+codigoSala, snap=>{
+    const sala = snap.val();
+    if(!sala) return;
+    if(sala.iniciado){
+      if(escutarSalaOff){ escutarSalaOff(); escutarSalaOff=null; }
+      escutarJogo();
+      irTela('tela-jogo');
+      return;
+    }
+    renderSlots(sala);
+  });
+}
+
+function renderSlots(sala){
+  const jogs = Object.values(sala.jogadores||{}).sort((a,b)=>a.slot-b.slot);
+  const mine = jogs.find(j=>j.id===meuId);
+  const isHost = mine?.slot===0;
+  const n = jogs.length;
+  let html = jogs.map(jg=>`
+    <div class="slot ok" style="border-color:${jg.cor}55">
+      <div class="slot-av">${jg.avatar}</div>
+      <div class="slot-nm" style="color:${jg.cor}">${jg.nome}</div>
+      <div class="slot-tag" style="background:${jg.cor}22;color:${jg.cor}">
+        ${jg.slot===0?'👑 Host':'Jogador '+(jg.slot+1)}
+      </div>
+    </div>`).join('');
+  if(n<6) html+=`<div class="slot"><div class="slot-vazio">⏳ Aguardando...</div></div>`;
+  document.getElementById('slots').innerHTML = html;
+  const st = document.getElementById('sala-status');
+  const btn = document.getElementById('btn-ini');
+  if(n>=2){
+    st.textContent = `${n} jogador(es) na sala.${isHost?' Você pode iniciar!':' Aguardando o host iniciar.'}`;
+    btn.disabled = !isHost;
+    btn.textContent = isHost ? `🚀 Iniciar Jogo com ${n} jogadores!` : '⏳ Aguardando o host iniciar...';
+  } else {
+    st.textContent = `${n} jogador(es). Precisa de pelo menos 2.`;
+    btn.disabled = true;
+    btn.textContent = '⏳ Aguardando mais jogadores...';
+  }
+}
+
+async function hostIniciar(){
+  const snap = await fbGet('salas/'+codigoSala);
+  const sala = snap.val();
+  if(!sala||Object.keys(sala.jogadores||{}).length<2) return;
+  const jogs = Object.values(sala.jogadores).sort((a,b)=>a.slot-b.slot);
+  const props = CASAS.filter(c=>c.tipo==='propriedade').map(c=>({...c,dono:null}));
+  const jogadoresObj = {};
+  jogs.forEach(jg=>{
+    jogadoresObj[jg.id]={
+      ...jg, saldo:1500, posicao:0, propriedades:[], voltas:0, ativo:true,
+      transacoes:[{desc:'Saldo inicial',valor:1500,tipo:'entrada',data:hoje()}]
+    };
+  });
+  const jogoInit = {
+    ordem: jogs.map(j=>j.id),
+    jogadores: jogadoresObj,
+    turnoIdx: 0, turno: 1, reciboN: 1000,
+    props: props.reduce((acc,p)=>{ acc[p.id]=p; return acc; },{}),
+    log: [{msg:'🏁 Jogo iniciado!',tipo:'lv'}],
+    fase: 'aguardando-dado',
+  };
+  await fbSet('jogos/'+codigoSala, jogoInit);
+  await fbUpdate('salas/'+codigoSala, {iniciado:true});
+}
+
+function sairSala(){
+  if(escutarSalaOff){ escutarSalaOff(); escutarSalaOff=null; }
+  irTela('tela-lobby');
+}
+
+function copiar(){
+  navigator.clipboard.writeText(codigoSala).catch(()=>{});
+  toast('📋 Código '+codigoSala+' copiado!');
+}
+function mostrarCod(){
+  document.getElementById('mod-cod-val').textContent = codigoSala;
+  am('mod-cod');
+}
+
+// =====================================================
+// ESCUTAR JOGO (FIREBASE REALTIME)
+// =====================================================
+let escutarJogoOff = null;
+function escutarJogo(){
+  if(escutarJogoOff){ escutarJogoOff(); }
+  escutarJogoOff = fbOn('jogos/'+codigoSala, snap=>{
+    const j = snap.val();
+    if(!j) return;
+    jogo = j;
+    atualizarUI();
+  });
+}
+
+// =====================================================
+// UI
+// =====================================================
+function euId(){ return meuId; }
+function jogAtual(){ return jogo ? jogo.jogadores[jogo.ordem[jogo.turnoIdx]] : null; }
+function ehMinhaVez(){ return jogAtual()?.id === meuId; }
+function meuJog(){ return jogo ? jogo.jogadores[meuId] : null; }
+
+function atualizarUI(){
+  if(!jogo) return;
+  const jA = jogAtual();
+  document.getElementById('sb-turno').textContent = jogo.turno;
+  document.getElementById('sb-vez-nome').textContent = jA ? jA.avatar+' '+jA.nome : '—';
+  document.getElementById('top-sala').textContent = codigoSala;
+  document.getElementById('top-turno').textContent = jogo.turno;
+  const mv = document.getElementById('minha-vez-pill');
+  const vo = document.getElementById('vez-outro');
+  if(ehMinhaVez()){
+    mv.style.display='block'; vo.textContent='';
+    document.getElementById('btn-dado').disabled = jogo.fase!=='aguardando-dado';
+    document.getElementById('acao-t').textContent = 'Sua vez! Clique em Rolar Dado!';
+    document.getElementById('acao-s').textContent = 'Turno '+jogo.turno+' • Sala '+codigoSala;
+  } else {
+    mv.style.display='none';
+    vo.textContent = jA ? 'Vez de '+jA.avatar+' '+jA.nome : '';
+    document.getElementById('btn-dado').disabled = true;
+    document.getElementById('acao-t').textContent = jA ? 'Vez de '+jA.nome : '—';
+    document.getElementById('acao-s').textContent = 'Aguardando...';
+  }
+  renderBoard();
+  const tabOn = document.querySelector('.stab.on');
+  if(tabOn) renderAba(tabOn.id.replace('tab-',''));
+  // verificar fim
+  const ativos = jogo.ordem.filter(id=>jogo.jogadores[id]?.ativo);
+  if(ativos.length<=1){ encerrar(); }
+}
+
+// =====================================================
+// TABULEIRO
+// =====================================================
+function renderBoard(){
+  const svg = document.getElementById('svg-board');
+  const W=700, H=700;
+  let out=`<defs>
+    <filter id="sh2"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".35"/></filter>
+    <radialGradient id="bgG" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#102040"/>
+      <stop offset="100%" stop-color="#07192e"/>
+    </radialGradient>
+    <radialGradient id="innerG" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0d3060"/>
+      <stop offset="100%" stop-color="#091e38"/>
+    </radialGradient>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#bgG)" rx="20"/>
+  <rect x="90" y="90" width="520" height="520" fill="url(#innerG)" rx="14"/>
+  <rect x="118" y="118" width="464" height="464" fill="#0a2848" rx="10" stroke="#1a4a72" stroke-width="1"/>
+  <!-- Centro decorativo -->
+  <circle cx="350" cy="350" r="120" fill="#0d3060" opacity=".6"/>
+  <circle cx="350" cy="350" r="100" fill="#0a2848" opacity=".8"/>
+  <text x="350" y="325" text-anchor="middle" font-family="Fredoka One,cursive" font-size="30" fill="#3DB8FF" opacity=".9">🌊 BANCO DE</text>
+  <text x="350" y="362" text-anchor="middle" font-family="Fredoka One,cursive" font-size="28" fill="#3DB8FF" opacity=".9">BALNEÁRIO!</text>
+  <text x="350" y="387" text-anchor="middle" font-family="Nunito,sans-serif" font-size="12" fill="#00E5A0" font-weight="700">💰 EDUCAÇÃO FINANCEIRA 4º ANO</text>
+  <text x="350" y="406" text-anchor="middle" font-family="Nunito,sans-serif" font-size="10" fill="#3DB8FF" opacity=".6">Balneário Camboriú • SC • BNCC</text>`;
+
+  CASAS.forEach(c=>{
+    const {x,y,tipo,nome,emoji,cor} = c;
+    const propData = tipo==='propriedade' ? jogo.props[c.id] : null;
+    const donoCor = propData?.dono!=null ? jogo.jogadores[propData.dono]?.cor : null;
+    const big = tipo==='inicio'||tipo==='descanso';
+    const w=big?72:60, h=big?72:52;
+    out+=`<g filter="url(#sh2)">
+      <rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="8"
+        fill="${cor}15" stroke="${donoCor||cor}" stroke-width="${donoCor?2.5:1.5}"/>
+      ${donoCor?`<rect x="${x+w/2-13}" y="${y-h/2}" width="13" height="13" rx="3" fill="${donoCor}"/>`: ''}
+      <text x="${x}" y="${y-2}" text-anchor="middle" dominant-baseline="middle" font-size="${big?22:15}">${emoji}</text>
+      <text x="${x}" y="${y+14}" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="800" font-size="6.5" fill="${cor}" opacity=".9">${nome.length>14?nome.slice(0,13)+'…':nome}</text>
+      ${tipo==='propriedade'&&propData?`<text x="${x}" y="${y+h/2-3}" text-anchor="middle" font-family="Fredoka One,cursive" font-size="7.5" fill="${cor}">R$${propData.preco}</text>`:''}
+    </g>`;
+  });
+
+  // Peões
+  const ativos = jogo.ordem.filter(id=>jogo.jogadores[id]?.ativo);
+  ativos.forEach((id,i)=>{
+    const jg = jogo.jogadores[id];
+    const c = CASAS[jg.posicao];
+    const angle = (i/Math.max(ativos.length,1))*Math.PI*2;
+    const r = ativos.length>1?13:0;
+    const ox=Math.cos(angle)*r, oy=Math.sin(angle)*r;
+    const isVez = jogo.ordem[jogo.turnoIdx]===id;
+    const isEu = id===meuId;
+    out+=`
+      ${isVez?`<circle cx="${c.x+ox}" cy="${c.y+oy}" r="18" fill="${jg.cor}" opacity=".2"/>`:''}
+      <circle cx="${c.x+ox}" cy="${c.y+oy}" r="14" fill="${jg.cor}" stroke="${isEu?'#fff':jg.cor}" stroke-width="${isEu?2.5:1.5}" filter="url(#sh2)"/>
+      <text x="${c.x+ox}" y="${c.y+oy+5}" text-anchor="middle" font-size="13">${jg.avatar}</text>`;
+  });
+  svg.innerHTML=out;
+}
+
+// =====================================================
+// DADO — ANIMAÇÃO 3D VERDADEIRA
+// =====================================================
+// Rotações para cada face ficar virada para cima
+const FACES_ROT = {
+  1:{rx:0,   ry:0},
+  2:{rx:0,   ry:180},
+  3:{rx:0,   ry:-90},
+  4:{rx:0,   ry:90},
+  5:{rx:-90, ry:0},
+  6:{rx:90,  ry:0},
+};
+
+// Gerador de números REALMENTE aleatórios
+function gerarNumeroAleatorio(){
+  // Usa crypto.getRandomValues para aleatoriedade verdadeira
+  const arr = new Uint32Array(1);
+  crypto.getRandomValues(arr);
+  return (arr[0] % 6) + 1;
+}
+
+let dadoAnimando = false;
+function rolarDado(){
+  if(!ehMinhaVez()||jogo.fase!=='aguardando-dado'||dadoAnimando) return;
+  dadoAnimando = true;
+  document.getElementById('btn-dado').disabled=true;
+  document.getElementById('dado-num').textContent='…';
+
+  // Gera resultado com crypto (verdadeiramente aleatório)
+  const resultado = gerarNumeroAleatorio();
+  const cubo = document.getElementById('dado3d');
+
+  // Rotação de spin louco aleatória
+  const spinX = 360*3 + Math.floor(Math.random()*360);
+  const spinY = 360*4 + Math.floor(Math.random()*360);
+  // Rotação final para mostrar a face correta
+  const fin = FACES_ROT[resultado];
+  cubo.style.setProperty('--fx', fin.rx+'deg');
+  cubo.style.setProperty('--fy', fin.ry+'deg');
+  cubo.style.transform = `rotateX(${spinX}deg) rotateY(${spinY}deg)`;
+  cubo.classList.add('girando');
+
+  setTimeout(()=>{
+    cubo.classList.remove('girando');
+    cubo.style.transform = `rotateX(${fin.rx}deg) rotateY(${fin.ry}deg)`;
+    document.getElementById('dado-num').textContent = resultado;
+    dadoAnimando = false;
+    setTimeout(()=>moverJogador(resultado), 300);
+  },1250);
+}
+
+// =====================================================
+// MOVIMENTAÇÃO
+// =====================================================
+async function moverJogador(passos){
+  const j = JSON.parse(JSON.stringify(jogo)); // deep copy
+  const jg = j.jogadores[j.ordem[j.turnoIdx]];
+  const ant = jg.posicao;
+  jg.posicao = (jg.posicao + passos) % CASAS.length;
+  if(jg.posicao<=ant && passos>0){
+    jg.voltas++;
+    jg.saldo+=200;
+    jg.transacoes.push({desc:'Salário — passou pelo INÍCIO',valor:200,tipo:'entrada',data:hoje()});
+    j.log.push({msg:`🏁 ${jg.nome} passou pelo INÍCIO! +R$200`,tipo:'le'});
+    toast('🏁 '+jg.nome+' recebeu R$200 de salário!');
+  }
+  j.fase='processando';
+  await fbSet('jogos/'+codigoSala, j);
+  jogo=j;
+  atualizarUI();
+  setTimeout(()=>processarCasa(j), 700);
+}
+
+async function processarCasa(j){
+  const jg = j.jogadores[j.ordem[j.turnoIdx]];
+  const casa = CASAS[jg.posicao];
+  j.log.push({msg:`📍 ${jg.avatar} ${jg.nome} → ${casa.nome}`,tipo:'lv'});
+  await fbSet('jogos/'+codigoSala, j);
+  jogo=j;
+  switch(casa.tipo){
+    case 'inicio': toast('🏁 Início!'); setTimeout(proxTurno,1200); break;
+    case 'descanso': toast('😎 Férias! Descanse.'); setTimeout(proxTurno,1500); break;
+    case 'propriedade': abrirProp(casa,j); break;
+    case 'carta-sorte': abrirCarta(j); break;
+    case 'imposto': abrirImposto(casa,j); break;
+    case 'quiz': abrirQuiz(); break;
+  }
+}
+
+// =====================================================
+// PROPRIEDADE
+// =====================================================
+function abrirProp(casa, j){
+  const jg = j.jogadores[j.ordem[j.turnoIdx]];
+  const prop = j.props[casa.id];
+  if(!prop) return;
+  if(prop.dono===null){
+    document.getElementById('mod-prop-h').textContent=casa.emoji+' '+casa.nome;
+    document.getElementById('mod-prop-b').innerHTML=`
+      <div class="pcard" style="background:${casa.cor}15;border-color:${casa.cor}">
+        <div class="pcard-em">${casa.emoji}</div>
+        <div class="pcard-nm" style="color:${casa.cor}">${casa.nome}</div>
+        <div class="pcard-pr" style="color:${casa.cor}">R$ ${prop.preco},00</div>
+        <div class="pcard-al" style="background:${casa.cor}18;color:${casa.cor}">🏠 Aluguel: R$ ${prop.aluguel},00/visita</div>
+        <div style="font-size:.78rem;opacity:.65">${grupoL(casa.grupo)}</div>
+      </div>
+      <div class="tag-b">💡 EF04MA24 — Problemas monetários</div>
+      <p style="font-size:.83rem;margin:.5rem 0">${jg.avatar} <strong>${jg.nome}</strong> tem <strong style="color:var(--verde)">R$ ${jg.saldo.toFixed(2)}</strong></p>
+      <p style="font-size:.78rem;color:var(--cinza2);margin-bottom:.7rem">Após comprar: R$ ${(jg.saldo-prop.preco).toFixed(2)}</p>
+      ${jg.saldo>=prop.preco
+        ?`<button class="bm bm-c" onclick="comprarProp(${casa.id})">🛒 Comprar por R$ ${prop.preco},00</button>`
+        :`<div style="background:var(--vermelho-bg);color:var(--vermelho);padding:.6rem;border-radius:8px;font-weight:700;font-size:.82rem;margin-bottom:.5rem">❌ Saldo insuficiente (faltam R$ ${(prop.preco-jg.saldo).toFixed(2)})</div>`}
+      <button class="bm bm-p" onclick="fm('mod-prop');proxTurno()">👋 Passar sem comprar</button>`;
+    am('mod-prop');
+  } else if(prop.dono===j.ordem[j.turnoIdx]){
+    toast('🏠 Sua propriedade!'); setTimeout(proxTurno,1400);
+  } else {
+    const dono = j.jogadores[prop.dono];
+    aluguelPend = {prop,dono,jg,casa,j};
+    j.reciboN++;
+    document.getElementById('mod-aluguel-b').innerHTML=`
+      <div class="pcard" style="background:${casa.cor}15;border-color:${casa.cor}">
+        <div class="pcard-em">${casa.emoji}</div>
+        <div class="pcard-nm" style="color:${casa.cor}">${casa.nome}</div>
+        <div style="font-size:.8rem;color:var(--cinza2);margin-top:.2rem">Dono: ${dono.avatar} <strong style="color:${dono.cor}">${dono.nome}</strong></div>
+      </div>
+      <div class="recibo">
+        <div class="r-t">🧾 COBRANÇA DE ALUGUEL</div>
+        <div class="r-n">Nº ${j.reciboN} — Balneário Camboriú</div>
+        <div class="r-l"><span>Locatário</span><span>${jg.avatar} ${jg.nome}</span></div>
+        <div class="r-l"><span>Locador</span><span>${dono.avatar} ${dono.nome}</span></div>
+        <div class="r-l"><span>Imóvel</span><span>${casa.nome}</span></div>
+        <div class="r-l"><span><strong>Valor</strong></span><span class="rn"><strong>R$ ${prop.aluguel},00</strong></span></div>
+      </div>
+      <p style="font-size:.78rem;color:var(--cinza2);margin-top:.5rem">Seu saldo: <strong>R$ ${jg.saldo.toFixed(2)}</strong></p>`;
+    am('mod-aluguel');
+  }
+}
+
+async function confirmarAluguel(){
+  if(!aluguelPend) return;
+  const {prop,dono,jg,casa} = aluguelPend;
+  const j = JSON.parse(JSON.stringify(jogo));
+  const jgR=j.jogadores[jg.id], donoR=j.jogadores[dono.id];
+  if(jgR.saldo<prop.aluguel){
+    jgR.ativo=false;
+    fm('mod-aluguel');
+    document.getElementById('mod-faliu-m').textContent=`${jgR.avatar} ${jgR.nome} não tinha saldo para pagar R$ ${prop.aluguel},00 de aluguel e FALIU!`;
+    j.log.push({msg:`💀 ${jgR.nome} faliu!`,tipo:'ls'});
+    await fbSet('jogos/'+codigoSala,j); jogo=j;
+    am('mod-faliu'); atualizarUI(); return;
+  }
+  jgR.saldo-=prop.aluguel; donoR.saldo+=prop.aluguel;
+  jgR.transacoes.push({desc:`Aluguel pago — ${prop.nome}`,valor:prop.aluguel,tipo:'saida',data:hoje()});
+  donoR.transacoes.push({desc:`Aluguel recebido — ${prop.nome}`,valor:prop.aluguel,tipo:'entrada',data:hoje()});
+  j.log.push({msg:`💸 ${jgR.nome} pagou R$${prop.aluguel} de aluguel para ${donoR.nome}`,tipo:'ls'});
+  document.getElementById('mod-recibo-b').innerHTML=`
+    <div class="recibo">
+      <div class="r-t">✅ RECIBO DE ALUGUEL PAGO</div>
+      <div class="r-n">Nº ${j.reciboN} — QUITADO</div>
+      <div class="r-l"><span>De</span><span>${jgR.avatar} ${jgR.nome}</span></div>
+      <div class="r-l"><span>Para</span><span>${donoR.avatar} ${donoR.nome}</span></div>
+      <div class="r-l"><span>Imóvel</span><span>${casa.nome}</span></div>
+      <div class="r-l"><span>Valor Pago</span><span class="rn">− R$ ${prop.aluguel},00</span></div>
+      <div class="r-l"><span>Recebido</span><span class="rp">+ R$ ${prop.aluguel},00</span></div>
+      <div class="r-l"><span><strong>Saldo ${jgR.nome}</strong></span><span><strong>R$ ${jgR.saldo.toFixed(2)}</strong></span></div>
+    </div>
+    <div class="tag-b" style="margin-top:.6rem">💡 Aluguel = renda de quem investe em imóveis!</div>`;
+  fm('mod-aluguel'); aluguelPend=null;
+  await fbSet('jogos/'+codigoSala,j); jogo=j;
+  am('mod-recibo'); atualizarUI();
+}
+
+async function comprarProp(id){
+  const j=JSON.parse(JSON.stringify(jogo));
+  const jg=j.jogadores[j.ordem[j.turnoIdx]];
+  const prop=j.props[id];
+  const casa=CASAS.find(c=>c.id===id);
+  if(!prop||jg.saldo<prop.preco) return;
+  jg.saldo-=prop.preco; prop.dono=j.ordem[j.turnoIdx];
+  jg.propriedades.push(id); j.reciboN++;
+  jg.transacoes.push({desc:`Compra — ${prop.nome}`,valor:prop.preco,tipo:'saida',data:hoje()});
+  j.log.push({msg:`🏠 ${jg.nome} comprou ${casa.nome} por R$${prop.preco}`,tipo:'le'});
+  document.getElementById('mod-recibo-b').innerHTML=`
+    <div class="recibo">
+      <div class="r-t">🏠 RECIBO DE COMPRA DE IMÓVEL</div>
+      <div class="r-n">Nº ${j.reciboN} — Balneário Camboriú • SC</div>
+      <div class="r-l"><span>Comprador</span><span>${jg.avatar} ${jg.nome}</span></div>
+      <div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div>
+      <div class="r-l"><span>Grupo</span><span>${grupoL(casa.grupo)}</span></div>
+      <div class="r-l"><span>Valor Pago</span><span class="rn">− R$ ${prop.preco},00</span></div>
+      <div class="r-l"><span>Renda/visita</span><span class="rp">R$ ${prop.aluguel}</span></div>
+      <div class="r-l"><span><strong>Novo Saldo</strong></span><span><strong>R$ ${jg.saldo.toFixed(2)}</strong></span></div>
+    </div>
+    <div class="tag-b" style="margin-top:.6rem">💡 Ótimo investimento! Você vai receber aluguel!</div>`;
+  fm('mod-prop');
+  await fbSet('jogos/'+codigoSala,j); jogo=j;
+  am('mod-recibo'); atualizarUI();
+}
+
+// =====================================================
+// CARTA
+// =====================================================
+async function abrirCarta(j){
+  const carta=CARTAS[Math.floor(Math.random()*CARTAS.length)];
+  const jg=j.jogadores[j.ordem[j.turnoIdx]];
+  if(carta.tipo==='ganhar'){
+    jg.saldo+=carta.valor;
+    jg.transacoes.push({desc:'Carta: '+carta.titulo,valor:carta.valor,tipo:'entrada',data:hoje()});
+    j.log.push({msg:`🃏 ${jg.nome}: ${carta.titulo} +R$${carta.valor}`,tipo:'le'});
+  } else {
+    jg.saldo=Math.max(0,jg.saldo-carta.valor);
+    jg.transacoes.push({desc:'Carta: '+carta.titulo,valor:carta.valor,tipo:'saida',data:hoje()});
+    j.log.push({msg:`🃏 ${jg.nome}: ${carta.titulo} -R$${carta.valor}`,tipo:'ls'});
+  }
+  document.getElementById('mod-carta-b').innerHTML=`
+    <div class="cartam" style="background:${carta.tipo==='ganhar'?'var(--verde-bg)':'var(--vermelho-bg)'}">
+      <div class="cartam-em">${carta.emoji}</div>
+      <div class="cartam-ti" style="color:${carta.tipo==='ganhar'?'var(--verde)':'var(--vermelho)'}">${carta.titulo}</div>
+      <div class="cartam-de">${carta.desc}</div>
+      <div class="cartam-va" style="color:${carta.tipo==='ganhar'?'var(--verde)':'var(--vermelho)'}">${carta.tipo==='ganhar'?'+':'−'} R$ ${carta.valor},00</div>
+    </div>
+    <div class="recibo">
+      <div class="r-l"><span>Jogador</span><span>${jg.avatar} ${jg.nome}</span></div>
+      <div class="r-l"><span>Tipo</span><span>${carta.tipo==='ganhar'?'💰 Receita':'💸 Despesa'}</span></div>
+      <div class="r-l"><span><strong>Novo Saldo</strong></span><span><strong>R$ ${jg.saldo.toFixed(2)}</strong></span></div>
+    </div>`;
+  await fbSet('jogos/'+codigoSala,j); jogo=j;
+  am('mod-carta'); atualizarUI();
+}
+
+// =====================================================
+// IMPOSTO
+// =====================================================
+async function abrirImposto(casa,j){
+  const jg=j.jogadores[j.ordem[j.turnoIdx]];
+  const val=Math.min(casa.valor,jg.saldo);
+  jg.saldo-=val;
+  jg.transacoes.push({desc:'Imposto — '+casa.nome,valor:val,tipo:'saida',data:hoje()});
+  j.log.push({msg:`🏛️ ${jg.nome} pagou imposto R$${val}`,tipo:'ls'});
+  document.getElementById('mod-carta-b').innerHTML=`
+    <div class="cartam" style="background:var(--amarelo-bg)">
+      <div class="cartam-em">${casa.emoji}</div>
+      <div class="cartam-ti" style="color:var(--amarelo)">${casa.nome}</div>
+      <div class="cartam-de">Todo cidadão paga impostos para manter a cidade funcionando!</div>
+      <div class="cartam-va" style="color:var(--vermelho)">− R$ ${val},00</div>
+    </div>
+    <div class="tag-b">💡 Impostos financiam escolas, ruas e hospitais de BC!</div>
+    <div class="recibo" style="margin-top:.6rem">
+      <div class="r-l"><span>Tipo</span><span>${casa.nome}</span></div>
+      <div class="r-l"><span><strong>Saldo restante</strong></span><span><strong>R$ ${jg.saldo.toFixed(2)}</strong></span></div>
+    </div>`;
+  await fbSet('jogos/'+codigoSala,j); jogo=j;
+  am('mod-carta'); atualizarUI();
+}
+
+// =====================================================
+// QUIZ
+// =====================================================
+function abrirQuiz(){
+  quizAtivo=QUIZ[Math.floor(Math.random()*QUIZ.length)];
+  document.getElementById('mod-quiz-b').innerHTML=`
+    <div class="tag-b">🎓 EF04MA25 — Desafio Financeiro! Responda e ganhe bônus!</div>
+    <div class="qp">${quizAtivo.p}</div>
+    <div class="qops">${quizAtivo.ops.map((op,i)=>`
+      <button class="qop" id="qop${i}" onclick="respQuiz(${i})">${['A','B','C','D'][i]}) ${op}</button>`).join('')}</div>
+    <div id="qfb"></div>`;
+  am('mod-quiz');
+}
+
+async function respQuiz(idx){
+  if(!quizAtivo) return;
+  document.querySelectorAll('.qop').forEach(b=>b.disabled=true);
+  const ok=idx===quizAtivo.c;
+  document.getElementById('qop'+quizAtivo.c).classList.add('ok');
+  if(!ok) document.getElementById('qop'+idx).classList.add('err');
+  const j=JSON.parse(JSON.stringify(jogo));
+  const jg=j.jogadores[j.ordem[j.turnoIdx]];
+  if(ok){
+    jg.saldo+=quizAtivo.bonus;
+    jg.transacoes.push({desc:'Quiz correto',valor:quizAtivo.bonus,tipo:'entrada',data:hoje()});
+    j.log.push({msg:`🎓 ${jg.nome} acertou o quiz! +R$${quizAtivo.bonus}`,tipo:'le'});
+  } else {
+    j.log.push({msg:`🎓 ${jg.nome} errou o quiz.`,tipo:'lv'});
+  }
+  document.getElementById('qfb').innerHTML=`
+    <div class="qfb" style="background:${ok?'var(--verde-bg)':'var(--vermelho-bg)'};color:${ok?'var(--verde)':'var(--vermelho)'}">
+      ${ok?'🎉 <strong>Correto!':'❌ <strong>Errou.'} </strong><br>${quizAtivo.exp}${ok?`<br><strong>+R$ ${quizAtivo.bonus},00!</strong>`:''}
+    </div>`;
+  await fbSet('jogos/'+codigoSala,j); jogo=j;
+  atualizarUI();
+  setTimeout(()=>{ fm('mod-quiz'); proxTurno(); }, 3200);
+}
+
+// =====================================================
+// BANCO — TRANSFERÊNCIA
+// =====================================================
+async function fazerTransferencia(){
+  if(!ehMinhaVez()) return;
+  const j=JSON.parse(JSON.stringify(jogo));
+  const jg=j.jogadores[meuId];
+  const destId=document.getElementById('s-dest').value;
+  const valor=parseFloat(document.getElementById('s-val').value);
+  if(!destId||isNaN(valor)||valor<=0){ toast('⚠️ Preencha os dados!'); return; }
+  if(jg.saldo<valor){ toast('❌ Saldo insuficiente!'); return; }
+  const dest=j.jogadores[destId];
+  if(!dest) return;
+  jg.saldo-=valor; dest.saldo+=valor; j.reciboN++;
+  jg.transacoes.push({desc:`Transferência → ${dest.nome}`,valor,tipo:'saida',data:hoje()});
+  dest.transacoes.push({desc:`Transferência ← ${jg.nome}`,valor,tipo:'entrada',data:hoje()});
+  j.log.push({msg:`💸 ${jg.nome} transferiu R$${valor.toFixed(0)} para ${dest.nome}`,tipo:'lv'});
+  document.getElementById('s-val').value='';
+  await fbSet('jogos/'+codigoSala,j); jogo=j;
+  atualizarUI();
+  toast(`✅ R$ ${valor.toFixed(2)} enviado para ${dest.nome}!`);
+}
+
+// =====================================================
+// PRÓXIMO TURNO
+// =====================================================
+async function proxTurno(){
+  const j=JSON.parse(JSON.stringify(jogo));
+  const ativos=j.ordem.filter(id=>j.jogadores[id]?.ativo);
+  if(ativos.length<=1){ encerrar(); return; }
+  if(j.ordem.some(id=>j.jogadores[id]?.voltas>=3)){ encerrar(); return; }
+  let prox=(j.turnoIdx+1)%j.ordem.length, t=0;
+  while(!j.jogadores[j.ordem[prox]]?.ativo && t++<j.ordem.length)
+    prox=(prox+1)%j.ordem.length;
+  j.turnoIdx=prox; j.turno++; j.fase='aguardando-dado';
+  await fbSet('jogos/'+codigoSala,j); jogo=j;
+  atualizarUI();
+}
+
+// =====================================================
+// ENCERRAR
+// =====================================================
+function encerrar(){
+  if(!jogo) return;
+  const ord=jogo.ordem.map(id=>jogo.jogadores[id]).sort((a,b)=>b.saldo-a.saldo);
+  const m=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣'];
+  document.getElementById('fim-venc').textContent=`${ord[0].avatar} ${ord[0].nome} venceu com R$ ${ord[0].saldo.toFixed(2)}! 🎉`;
+  document.getElementById('rank-final').innerHTML=
+    '<h3 style="font-family:\'Fredoka One\',cursive;color:var(--branco);margin-bottom:.8rem">🏆 Placar Final</h3>'+
+    ord.map((jg,i)=>`<div class="rki">
+      <div class="rki-pos">${m[i]||''}</div>
+      <div class="rki-av" style="border-color:${jg.cor};background:${jg.cor}22">${jg.avatar}</div>
+      <div class="rki-info"><div class="rki-nm">${jg.nome}</div><div class="rki-det">${jg.propriedades.length} imóveis • ${jg.voltas} volta(s)</div></div>
+      <div class="rki-s" style="color:${jg.cor}">R$ ${jg.saldo.toFixed(0)}</div>
+    </div>`).join('');
+  if(escutarJogoOff){ escutarJogoOff(); }
+  irTela('tela-fim');
+}
+
+// =====================================================
+// SIDEBAR
+// =====================================================
+function aba(t){
+  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('tab-'+t).classList.add('on');
+  renderAba(t);
+}
+
+function renderAba(t){
+  const body=document.getElementById('sb-body');
+  if(!jogo){ body.innerHTML=''; return; }
+  const j=jogo;
+  const eu=meuJog();
+  if(t==='jog'){
+    body.innerHTML=j.ordem.map(id=>{
+      const jg=j.jogadores[id];
+      const vez=j.ordem[j.turnoIdx]===id;
+      const isEu=id===meuId;
+      const ps=jg.propriedades.map(pid=>{
+        const c=CASAS.find(x=>x.id===pid);
+        return `<span class="pbadge" style="background:${c?.cor||'#888'}40;color:${c?.cor||'#888'}">${c?.emoji||'🏠'}</span>`;
+      }).join('');
+      return `<div class="pjc${vez?' vez':''}${isEu?' eu':''}">
+        <div class="pjc-row">
+          <div class="pjc-av" style="border-color:${jg.cor};background:${jg.cor}22">${jg.avatar}</div>
+          <div style="flex:1;min-width:0">
+            <div class="pjc-nome">${jg.nome}${isEu?' <span style="font-size:.6rem;color:var(--azul)">(você)</span>':''}</div>
+            <div class="pjc-saldo" style="color:${jg.cor}">R$ ${jg.saldo.toFixed(0)}</div>
+            <div class="pjc-pos">📍 ${CASAS[jg.posicao]?.nome||'—'} • ${jg.voltas}x</div>
+          </div>
+          ${vez?'<span class="vez-tag">VEZ</span>':''}
+        </div>
+        ${ps?`<div class="pjc-ps">${ps}</div>`:''}
+        ${!jg.ativo?'<div style="background:var(--vermelho-bg);color:var(--vermelho);font-size:.65rem;padding:.15rem .4rem;border-radius:4px;margin-top:.3rem;font-weight:700">FALIU</div>':''}
+      </div>`;
+    }).join('');
+  } else if(t==='banco'){
+    const outros=j.ordem.filter(id=>id!==meuId&&j.jogadores[id]?.ativo);
+    const trans=eu?[...eu.transacoes].reverse().slice(0,18):[];
+    body.innerHTML=`
+      <div class="banco-bloco">
+        <div class="banco-h">💸 Transferir Dinheiro</div>
+        ${ehMinhaVez()?`
+          <select class="ssel" id="s-dest">
+            <option value="">Selecionar jogador...</option>
+            ${outros.map(id=>`<option value="${id}">${j.jogadores[id].avatar} ${j.jogadores[id].nome}</option>`).join('')}
+          </select>
+          <input type="number" class="sinp" id="s-val" placeholder="Valor (R$)" min="1">
+          <button class="sbtn sbtn-v" onclick="fazerTransferencia()">💸 Transferir</button>
+        `:'<p style="font-size:.78rem;color:var(--cinza2)">Só na sua vez.</p>'}
+      </div>
+      <div class="banco-bloco">
+        <div class="banco-h">📊 Extrato — ${eu?.nome||'—'}</div>
+        <div style="font-family:'Fredoka One',cursive;color:var(--verde);font-size:1.3rem;margin-bottom:.5rem">R$ ${eu?.saldo.toFixed(2)||'0.00'}</div>
+        ${trans.length?trans.map(t=>`<div class="ext-row">
+          <span style="flex:1;font-size:.71rem">${t.tipo==='entrada'?'⬆️':'⬇️'} ${t.desc}</span>
+          <span class="${t.tipo==='entrada'?'ep':'en'}">${t.tipo==='entrada'?'+':'-'}R$${t.valor.toFixed(0)}</span>
+        </div>`).join(''):'<p style="font-size:.75rem;color:var(--cinza2)">Sem transações.</p>'}
+      </div>`;
+  } else if(t==='im'){
+    body.innerHTML=Object.values(j.props).map(prop=>{
+      const casa=CASAS.find(c=>c.id===prop.id);
+      const dono=prop.dono!=null?j.jogadores[prop.dono]:null;
+      return `<div class="im-row" style="border-left-color:${casa.cor}">
+        <div>
+          <div class="im-nome">${casa.emoji} ${casa.nome}</div>
+          <div class="im-d">${dono?dono.avatar+' '+dono.nome:'🟢 Disponível'} • R$${prop.aluguel}/vis.</div>
+        </div>
+        <div class="im-v" style="color:${casa.cor}">R$${prop.preco}</div>
+      </div>`;
+    }).join('');
+  } else if(t==='log'){
+    body.innerHTML=[...(j.log||[])].reverse().slice(0,35).map(l=>
+      `<div class="log-row ${l.tipo}">${l.msg}</div>`).join('')||
+      '<p style="font-size:.76rem;color:var(--cinza2)">Nenhum evento.</p>';
+  }
+}
+
+// =====================================================
+// HELPERS
+// =====================================================
+function grupoL(g){
+  return{praias:'🏖️ Praias',comercio:'🛍️ Comércio',parques:'🌳 Parques',
+    turismo:'🎡 Turismo',transporte:'✈️ Transporte'}[g]||g;
+}
+function am(id){ document.getElementById(id).classList.add('open'); }
+function fm(id){ document.getElementById(id).classList.remove('open'); }
+
+let toastT;
+function toast(msg){
+  let t=document.getElementById('_t');
+  if(!t){
+    t=document.createElement('div'); t.id='_t';
+    t.style.cssText='position:fixed;bottom:68px;left:50%;transform:translateX(-50%);'+
+      'background:#0d2a47;border:1.5px solid #1a4a72;color:#e0f0ff;'+
+      'padding:.5rem 1.1rem;border-radius:20px;font-size:.8rem;font-weight:700;'+
+      'z-index:999;pointer-events:none;white-space:nowrap;max-width:92vw;'+
+      'text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.5);transition:opacity .3s';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(toastT); toastT=setTimeout(()=>t.style.opacity='0',2600);
+}
+</script>
+</body>
+</html>
