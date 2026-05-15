@@ -78,6 +78,70 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 @keyframes pulseGlow2{0%,100%{box-shadow:0 0 0 0 #00E5A044}50%{box-shadow:0 0 14px 5px #00E5A022}}
 @keyframes popIn{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
 
+/* ====== FUTURISTIC LOBBY FX ====== */
+@keyframes scanline{0%{background-position:0 0}100%{background-position:0 100px}}
+@keyframes glowPulse{0%,100%{text-shadow:0 0 20px #3DB8FF55,0 0 60px #3DB8FF22}50%{text-shadow:0 0 35px #3DB8FFaa,0 0 80px #3DB8FF44,0 2px 0 rgba(0,0,0,.5)}}
+@keyframes titleShimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes floatBadge{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes gridMove{0%{transform:translateY(0)}100%{transform:translateY(60px)}}
+@keyframes crestGlow{0%,100%{filter:drop-shadow(0 2px 18px #3DB8FF88)}50%{filter:drop-shadow(0 2px 32px #3DB8FFcc) drop-shadow(0 0 8px #00E5A044)}}
+
+.lobby-grid-bg{
+  position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;
+}
+.lobby-grid-bg::before{
+  content:'';position:absolute;inset:-60px;
+  background-image:
+    linear-gradient(rgba(61,184,255,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(61,184,255,.055) 1px,transparent 1px);
+  background-size:40px 40px;
+  animation:gridMove 8s linear infinite;
+}
+.lobby-grid-bg::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(0,229,160,.07) 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 80%,rgba(61,184,255,.05) 0%,transparent 50%);
+}
+#tela-lobby{position:relative}
+#tela-lobby>*{position:relative;z-index:1}
+
+.logo-escola-img{animation:onda 3s ease-in-out infinite,crestGlow 3s ease-in-out infinite!important}
+
+.logo-h{
+  background:linear-gradient(90deg,#e0f0ff 0%,#3DB8FF 30%,#00E5A0 50%,#3DB8FF 70%,#e0f0ff 100%);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:titleShimmer 4s linear infinite,glowPulse 3s ease-in-out infinite!important;
+}
+.logo-h em{-webkit-text-fill-color:#FFD23F!important;background:none!important}
+
+.badge-free{
+  background:linear-gradient(135deg,rgba(0,229,160,.15),rgba(61,184,255,.1));
+  border:1.5px solid var(--verde);
+  box-shadow:0 0 18px rgba(0,229,160,.18),inset 0 1px 0 rgba(255,255,255,.08);
+  animation:floatBadge 2.8s ease-in-out infinite;
+  letter-spacing:1.5px;
+}
+
+.lbox{
+  backdrop-filter:blur(8px);
+  background:rgba(13,42,71,.85);
+  border:1.5px solid rgba(61,184,255,.2);
+  box-shadow:0 8px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);
+  transition:border-color .3s,box-shadow .3s;
+}
+.lbox:hover{border-color:rgba(61,184,255,.4);box-shadow:0 12px 40px rgba(0,0,0,.6),0 0 20px rgba(61,184,255,.08),inset 0 1px 0 rgba(255,255,255,.07)}
+
+.btn-criar,.btn-entrar{
+  position:relative;overflow:hidden;
+}
+.btn-criar::after,.btn-entrar::after{
+  content:'';position:absolute;top:-50%;left:-60%;width:30%;height:200%;
+  background:rgba(255,255,255,.15);transform:skewX(-20deg);
+  animation:btnShine 3.5s ease-in-out infinite;
+}
+@keyframes btnShine{0%,60%,100%{left:-60%}50%{left:130%}}
+
 /* ====== SCREENS ====== */
 .screen{display:none;animation:fadeUp .3s ease}
 .screen.active{display:flex;flex-direction:column}
@@ -361,6 +425,45 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   35% {transform:scale(1.1)}
   100%{opacity:0;transform:scale(0)}
 }
+/* ====== CARD DE EVENTO (narrativa dramática) ====== */
+#ev-overlay{display:none;position:fixed;inset:0;z-index:260;
+  flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(4,14,28,.9);backdrop-filter:blur(14px)}
+#ev-overlay.vis{display:flex}
+#ev-card{
+  background:var(--card);border:2px solid var(--borda);border-radius:24px;
+  padding:1.8rem 1.4rem 1.2rem;max-width:380px;width:92%;text-align:center;
+  box-shadow:0 30px 100px rgba(0,0,0,.85);
+  max-height:90dvh;overflow-y:auto;
+}
+@keyframes evEntrar{0%{opacity:0;transform:scale(.55) translateY(50px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes evSair{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.8) translateY(-20px)}}
+.ev-anim{animation:evEntrar .42s cubic-bezier(.34,1.56,.64,1) forwards}
+#ev-emoji{font-size:3.8rem;display:block;margin-bottom:.4rem;line-height:1}
+#ev-titulo{font-family:'Fredoka One',cursive;font-size:1.55rem;color:var(--branco);margin-bottom:.4rem;line-height:1.2}
+#ev-narrativa{font-size:.84rem;color:var(--cinza2);line-height:1.65;margin-bottom:.7rem}
+#ev-valor{font-family:'Fredoka One',cursive;font-size:2.6rem;line-height:1;margin:.2rem 0 .8rem}
+#ev-valor.ganho{color:var(--verde);text-shadow:0 0 28px #00E5A055}
+#ev-valor.perda{color:var(--vermelho);text-shadow:0 0 28px #FF475755}
+#ev-dono{font-size:.83rem;background:var(--card2);border-radius:10px;padding:.5rem .75rem;margin-bottom:.7rem}
+#ev-tag{font-size:.63rem;font-weight:800;padding:.18rem .55rem;border-radius:5px;display:inline-block;margin-bottom:.7rem}
+#ev-recibo{border:1.5px dashed var(--borda);border-radius:10px;padding:.75rem;background:var(--bg);margin-bottom:.75rem;text-align:left}
+#ev-recibo .r-l{display:flex;justify-content:space-between;padding:.22rem 0;border-bottom:1px dashed var(--borda);font-size:.76rem}
+#ev-recibo .r-l:last-child{border:none;font-weight:700}
+#ev-recibo .r-t{text-align:center;font-family:'Fredoka One',cursive;font-size:.9rem;color:var(--branco);margin-bottom:.2rem}
+#ev-recibo .r-n{text-align:center;font-size:.6rem;color:var(--cinza2);margin-bottom:.5rem}
+.ev-btn{width:100%;padding:.75rem;border:none;border-radius:12px;font-family:'Fredoka One',cursive;font-size:1.05rem;cursor:pointer;margin-bottom:.35rem;transition:transform .1s}
+.ev-btn:active{transform:scale(.97)}
+.ev-btn2{width:100%;padding:.65rem;border:1.5px solid var(--borda);border-radius:12px;font-family:'Fredoka One',cursive;font-size:.95rem;cursor:pointer;background:var(--card2);color:var(--texto)}
+#ev-dev{margin-bottom:.6rem}
+.dev-strip{display:flex;align-items:center;justify-content:center;gap:.3rem;margin:.35rem 0;font-size:.75rem;color:var(--cinza2)}
+@media(max-width:600px){
+  #ev-card{padding:1.2rem .9rem 1rem;border-radius:18px;max-width:96%}
+  #ev-emoji{font-size:3rem}
+  #ev-titulo{font-size:1.3rem}
+  #ev-valor{font-size:2.1rem}
+}
+
 @media(max-width:600px){
   #dado-ov-face{width:130px;height:130px;padding:13px;gap:7px;border-radius:20px}
   #dado-ov-face .pip{width:17px;height:17px}
@@ -407,6 +510,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 
 <!-- LOBBY -->
 <div id="tela-lobby" class="screen">
+<div class="lobby-grid-bg" aria-hidden="true"></div>
   <!-- PAINEL RECONEXÃO -->
   <div class="reconectar-box" id="box-reconectar">
     <div class="reconectar-info" id="reconectar-info">⚡ Você saiu de uma partida em andamento!</div>
@@ -436,7 +540,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   </div>
   <div class="lbox">
     <div class="lbox-t">🔗 Entrar em sala existente</div>
-    <input class="inp" id="l-codigo" placeholder="Código da sala (4 dígitos)" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')entrarSala()">
+    <input class="inp" id="l-codigo" placeholder="Código da sala (6 caracteres)" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')" onkeydown="if(event.key==='Enter')entrarSala()">
     <button class="btn btn-entrar" onclick="entrarSala()">🚀 Entrar na Sala</button>
   </div>
   <div class="bncc">✅ BNCC: EF04MA24 • EF04MA25 • EF04MA26 — Balneário Camboriú • SC</div>
@@ -540,33 +644,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 </div><!-- fim #app -->
 
 <!-- MODAIS -->
-<div class="ov" id="mod-prop"><div class="mbox">
-  <div class="mh"><h3 id="mod-prop-h">Propriedade</h3><button class="mc" onclick="fm('mod-prop');proxTurno()">✕</button></div>
-  <div id="mod-prop-b"></div>
-</div></div>
-
-<div class="ov" id="mod-carta"><div class="mbox">
-  <div class="mh"><h3>🃏 Carta Especial</h3><button class="mc" onclick="fm('mod-carta')">✕</button></div>
-  <div id="mod-carta-b"></div>
-  <button class="bm bm-p" style="margin-top:.7rem" onclick="fm('mod-carta')">✅ Ok!</button>
-</div></div>
-
 <div class="ov" id="mod-quiz"><div class="mbox">
-  <div class="mh"><h3>🎓 Desafio Financeiro!</h3><button class="mc" onclick="fm('mod-quiz');proxTurno()">✕</button></div>
+  <div class="mh"><h3>🎓 Desafio Financeiro!</h3><button class="mc" onclick="fm('mod-quiz');setTimeout(proxTurno,200)">✕</button></div>
   <div id="mod-quiz-b"></div>
 </div></div>
 
-<div class="ov" id="mod-recibo"><div class="mbox">
-  <div class="mh"><h3>🧾 Comprovante</h3><button class="mc" onclick="fm('mod-recibo');proxTurno()">✕</button></div>
-  <div id="mod-recibo-b"></div>
-  <button class="bm bm-p" style="margin-top:.7rem" onclick="fm('mod-recibo');proxTurno()">✅ Fechar</button>
-</div></div>
 
-<div class="ov" id="mod-aluguel"><div class="mbox">
-  <div class="mh"><h3>💸 Cobrança de Aluguel</h3><button class="mc" onclick="fm('mod-aluguel');proxTurno()">✕</button></div>
-  <div id="mod-aluguel-b"></div>
-  <button class="bm bm-c" style="margin-top:.7rem" onclick="confirmarAluguel()">💰 Pagar Aluguel</button>
-</div></div>
 
 <div class="ov" id="mod-faliu"><div class="mbox" style="text-align:center">
   <div style="font-size:3.5rem;margin-bottom:.4rem">😢</div>
@@ -587,6 +670,22 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   <button class="bm bm-c" onclick="copiar();fm('mod-cod')">📋 Copiar Código</button>
   <button class="bm bm-p" onclick="fm('mod-cod')">Fechar</button>
 </div></div>
+
+<!-- ====== OVERLAY CARD DE EVENTO ====== -->
+<div id="ev-overlay">
+  <div id="ev-card">
+    <span id="ev-emoji">🎲</span>
+    <div id="ev-titulo"></div>
+    <div id="ev-narrativa"></div>
+    <div id="ev-valor" class="ganho" style="display:none"></div>
+    <div id="ev-dono" style="display:none"></div>
+    <div id="ev-tag" style="display:none"></div>
+    <div id="ev-recibo" style="display:none"></div>
+    <div id="ev-dev" style="display:none"></div>
+    <button class="ev-btn" id="ev-btn" style="display:none"></button>
+    <button class="ev-btn ev-btn2" id="ev-btn2" style="display:none"></button>
+  </div>
+</div>
 
 <!-- ====== OVERLAY DADO CENTRAL ====== -->
 <div id="dado-overlay">
@@ -964,7 +1063,18 @@ function escHtml(s){
 // =====================================================
 // SALA
 // =====================================================
-function gerarCodigo(){return String(Math.floor(1000+Math.random()*9000));}
+function gerarCodigo(){
+  // 6-char alphanumeric with crypto — ~1 billion combinations
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  try{
+    const arr=new Uint8Array(6);
+    crypto.getRandomValues(arr);
+    return Array.from(arr,b=>chars[b%chars.length]).join('');
+  }catch(e){
+    // fallback if crypto unavailable
+    return String(Math.floor(100000+Math.random()*900000));
+  }
+}
 function hoje(){return new Date().toLocaleDateString('pt-BR');}
 
 async function criarSala(){
@@ -984,7 +1094,7 @@ async function criarSala(){
 async function entrarSala(){
   const nome=document.getElementById('l-nome').value.trim()||'Aluno';
   const cod=document.getElementById('l-codigo').value.trim();
-  if(!cod||cod.length!==4){toast('⚠️ Digite o código de 4 dígitos!');return;}
+  if(!cod||cod.length!==6){toast('⚠️ Digite o código de 6 caracteres!');return;}
   const snap=await fbGet('salas/'+cod);
   const sala=snap.val();
   if(!sala){toast('❌ Sala não encontrada!');return;}
@@ -1031,7 +1141,7 @@ function renderSlots(sala){
   let html=jogs.map(jg=>`
     <div class="slot ok" style="border-color:${jg.cor}55">
       <div class="slot-av">${jg.avatar}</div>
-      <div class="slot-nm" style="color:${jg.cor}">${jg.nome}</div>
+      <div class="slot-nm" style="color:${jg.cor}">${escHtml(jg.nome||'')}</div>
       <div class="slot-tag" style="background:${jg.cor}22;color:${jg.cor}">
         ${jg.slot===0?'👑 Host':'Jogador '+(jg.slot+1)}
       </div>
@@ -1057,7 +1167,7 @@ async function hostIniciar(){
   if(!sala||Object.keys(sala.jogadores||{}).length<2)return;
   const jogs=Object.values(sala.jogadores).sort((a,b)=>a.slot-b.slot);
   const props=CASAS.filter(c=>c.tipo==='propriedade').reduce((acc,c)=>{
-    acc[c.id]={...c,dono:null};return acc;},{});
+    acc[c.id]={...c,dono:null,casas:0,hotel:false};return acc;},{});
   const jogadoresObj={};
   jogs.forEach(jg=>{
     jogadoresObj[jg.id]={
@@ -1217,6 +1327,8 @@ function renderBoard(){
       <text x="${x}" y="${y-1}" text-anchor="middle" dominant-baseline="middle" font-size="${big?20:13}">${emoji}</text>
       <text x="${x}" y="${y+13}" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="800" font-size="5.8" fill="${cor}" opacity=".9">${nome.length>14?nome.slice(0,13)+'…':nome}</text>
       ${tipo==='propriedade'&&propData?`<text x="${x}" y="${y+h/2-3}" text-anchor="middle" font-family="Fredoka One,cursive" font-size="6.5" fill="${cor}">R$${propData.preco}</text>`:''}
+      ${tipo==='propriedade'&&propData?.hotel?`<text x="${x}" y="${y-h/2+11}" text-anchor="middle" font-size="9">🏨</text>`:''}
+      ${tipo==='propriedade'&&!propData?.hotel&&propData?.casas>0?`<text x="${x}" y="${y-h/2+11}" text-anchor="middle" font-size="${6+propData.casas}">${'🏠'.repeat(Math.min(propData.casas,4))}</text>`:''}
     </g>`;
   });
 
@@ -1291,6 +1403,149 @@ function mostrarFaceOverlay(n){
   const f=faces[n]||faces[1];
   el.className=f.c; // mantém só o layout grid
   el.innerHTML=f.h;
+}
+
+// =====================================================
+// CARD DE EVENTO — narrativa dramática por casa
+// =====================================================
+const NARRATIVAS_IMPOSTO = {
+  'Taxa Municipal':    'O fiscal da prefeitura bateu na porta! Em BC, os impostos mantêm a orla limpa e as praias bonitas.',
+  'IPTU':             'Chegou o carnê do IPTU no correio! Quem tem imóvel paga todo ano para manter o bairro organizado.',
+  'Multa de Trânsito':'Câmera flagrou você avançando o sinal vermelho na Av. Brasil! Trânsito seguro é responsabilidade de todos.',
+  'Taxa de Turismo':  'Alta temporada em BC! A taxa ajuda a manter o Calçadão e a orla sempre impecáveis para os turistas.',
+  'ISS Serviços':     'Prestou serviço? Tem que recolher o ISS! O Imposto Sobre Serviços vai para a prefeitura cuidar da cidade.',
+};
+const NARRATIVAS_INICIO = 'Você deu mais uma volta completa por Balneário Camboriú! O banco paga seu salário de R$ 200,00. Parabéns!';
+
+function calcularAluguel(prop, isMonopoly){
+  const base = prop.aluguel;
+  if(prop.hotel)        return base * 10;
+  if(prop.casas === 4)  return base * 7;
+  if(prop.casas === 3)  return base * 5;
+  if(prop.casas === 2)  return base * 3;
+  if(prop.casas === 1)  return base * 2;
+  return isMonopoly ? base * 2 : base;
+}
+
+function devLabel(prop){
+  if(prop.hotel) return '🏨 Hotel';
+  if(prop.casas > 0) return '🏠'.repeat(prop.casas) + ` (${prop.casas} casa${prop.casas>1?'s':''})`;
+  return 'Terreno livre';
+}
+
+function mostrarEvento(cfg){
+  const ov  = document.getElementById('ev-overlay');
+  const card= document.getElementById('ev-card');
+  document.getElementById('ev-emoji').textContent    = cfg.emoji     || '🎲';
+  document.getElementById('ev-titulo').textContent   = cfg.titulo    || '';
+  document.getElementById('ev-narrativa').textContent= cfg.narrativa || '';
+  card.style.borderColor = cfg.cor || 'var(--borda)';
+  // Valor
+  const valEl = document.getElementById('ev-valor');
+  if(cfg.valor != null && cfg.valor !== 0){
+    valEl.style.display='block';
+    valEl.className = cfg.valor>0 ? 'ganho' : 'perda';
+    valEl.textContent = (cfg.valor>0?'+ R$ ':'− R$ ')+Math.abs(cfg.valor).toFixed(0)+',00';
+  } else { valEl.style.display='none'; }
+  // Dono
+  const donoEl = document.getElementById('ev-dono');
+  if(cfg.donoHtml){ donoEl.innerHTML=cfg.donoHtml; donoEl.style.display=''; }
+  else donoEl.style.display='none';
+  // Tag
+  const tagEl = document.getElementById('ev-tag');
+  if(cfg.tagHtml){ tagEl.innerHTML=cfg.tagHtml; tagEl.style.display=''; }
+  else tagEl.style.display='none';
+  // Recibo
+  const reciboEl = document.getElementById('ev-recibo');
+  if(cfg.reciboHtml){ reciboEl.innerHTML=cfg.reciboHtml; reciboEl.style.display=''; }
+  else reciboEl.style.display='none';
+  // Dev (casas/hotel)
+  const devEl = document.getElementById('ev-dev');
+  if(cfg.devHtml){ devEl.innerHTML=cfg.devHtml; devEl.style.display=''; }
+  else devEl.style.display='none';
+  // Botão 1
+  const btn = document.getElementById('ev-btn');
+  if(cfg.btnTxt){
+    btn.textContent=cfg.btnTxt;
+    btn.style.background=cfg.cor||'var(--verde)';
+    btn.style.color='#07192e'; btn.style.display='block';
+    btn.onclick=()=>{ fecharEvento(cfg.btnFn); };
+  } else btn.style.display='none';
+  // Botão 2
+  const btn2 = document.getElementById('ev-btn2');
+  if(cfg.btn2Txt){
+    btn2.textContent=cfg.btn2Txt; btn2.style.display='block';
+    btn2.onclick=()=>{ fecharEvento(cfg.btn2Fn); };
+  } else btn2.style.display='none';
+  // Animar
+  card.className='ev-anim';
+  void card.offsetWidth;
+  card.className='ev-anim';
+  ov.classList.add('vis');
+  if(cfg.autoMs) setTimeout(()=>fecharEvento(cfg.autoFn), cfg.autoMs);
+}
+
+function fecharEvento(fn){
+  const ov  = document.getElementById('ev-overlay');
+  const card= document.getElementById('ev-card');
+  card.style.animation='evSair .3s ease-in forwards';
+  setTimeout(()=>{ ov.classList.remove('vis'); card.style.animation=''; card.className=''; if(fn)fn(); }, 310);
+}
+
+// =====================================================
+// CASAS E HOTÉIS — comprar/vender benfeitorias
+// =====================================================
+async function comprarDesenvolvimento(id){
+  if(!ehMinhaVez()){toast('Só na sua vez!');return;}
+  const j=JSON.parse(JSON.stringify(jogo));
+  const jg=j.jogadores[meuId];
+  const prop=j.props[id];
+  const casa=CASAS.find(c=>c.id===id);
+  if(!prop||prop.dono!==meuId){toast('Você não é dono!');return;}
+  if(prop.hotel){toast('🏨 Máximo! Já tem hotel.');return;}
+  const isHotel=prop.casas>=4;
+  const custo=isHotel?Math.floor(prop.preco*.7):Math.floor(prop.preco*.5);
+  if(jg.saldo<custo){
+    mostrarEvento({emoji:'😬',titulo:'Saldo insuficiente',
+      narrativa:`Você precisaria de R$ ${custo},00 para construir. Junte mais dinheiro!`,
+      cor:'var(--vermelho)',btnTxt:'OK',btnFn:null});
+    return;
+  }
+  jg.saldo-=custo; j.reciboN++;
+  if(isHotel){prop.casas=0;prop.hotel=true;}else{prop.casas++;}
+  jg.transacoes.push({desc:`${isHotel?'Hotel':'Casa '+prop.casas} — ${casa.nome}`,valor:custo,tipo:'saida',data:hoje()});
+  j.log.push({msg:`${isHotel?'🏨':'🏠'} ${jg.nome} construiu ${isHotel?'hotel':'casa '+prop.casas} em ${casa.nome}!`,tipo:'le'});
+  await fbSet('jogos/'+codigoSala,j);jogo=j;
+  const novoAluguel=calcularAluguel(prop,temMonopolio(meuId,casa.grupo,j));
+  fecharEvento(null);
+  setTimeout(()=>mostrarEvento({
+    emoji:isHotel?'🏨':'🏠',
+    titulo:isHotel?'Hotel construído!':'Casa construída!',
+    narrativa:`${casa.nome} agora tem ${devLabel(prop)}. O aluguel subiu para R$ ${novoAluguel},00/visita!`,
+    valor:-custo,cor:isHotel?'var(--roxo)':'var(--verde)',
+    tagHtml:'💡 Benfeitorias aumentam o aluguel e seu lucro!',
+    btnTxt:'Ótimo! 💪',btnFn:()=>{atualizarUI();renderBoard();if(jogo?.fase==='processando')proxTurno();}
+  }),320);
+  snd('comprar');
+}
+
+async function venderDesenvolvimento(id){
+  if(!ehMinhaVez()){toast('Só na sua vez!');return;}
+  const j=JSON.parse(JSON.stringify(jogo));
+  const jg=j.jogadores[meuId];
+  const prop=j.props[id];
+  const casa=CASAS.find(c=>c.id===id);
+  if(!prop||prop.dono!==meuId)return;
+  if(!prop.casas&&!prop.hotel){toast('Nada para vender.');return;}
+  let retorno;
+  if(prop.hotel){retorno=Math.floor(prop.preco*.35);prop.hotel=false;prop.casas=4;}
+  else{retorno=Math.floor(prop.preco*.25);prop.casas--;}
+  jg.saldo+=retorno;j.reciboN++;
+  jg.transacoes.push({desc:`Venda benfeitoria — ${casa.nome}`,valor:retorno,tipo:'entrada',data:hoje()});
+  j.log.push({msg:`🏚️ ${jg.nome} vendeu benfeitoria em ${casa.nome} por R$${retorno}`,tipo:'lv'});
+  await fbSet('jogos/'+codigoSala,j);jogo=j;
+  fecharEvento(()=>{atualizarUI();renderBoard();toast(`✅ Vendido por R$${retorno}!`);if(jogo?.fase==='processando')proxTurno();});
+  snd('ganhar');
 }
 
 function rolarDado(){
@@ -1438,69 +1693,84 @@ function temMonopolio(playerId, grupo, j){
 function abrirProp(casa,j){
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
   const prop=j.props[casa.id];
-  if(!prop)return;
+  if(!prop){setTimeout(proxTurno,500);return;}
+
   if(prop.dono===null){
-    document.getElementById('mod-prop-h').textContent=casa.emoji+' '+casa.nome;
-    document.getElementById('mod-prop-b').innerHTML=`
-      <div class="pcard" style="background:${casa.cor}15;border-color:${casa.cor}">
-        <div class="pcard-em">${casa.emoji}</div>
-        <div class="pcard-nm" style="color:${casa.cor}">${casa.nome}</div>
-        <div class="pcard-pr" style="color:${casa.cor}">R$ ${prop.preco},00</div>
-        <div class="pcard-al" style="background:${casa.cor}18;color:${casa.cor}">🏠 Aluguel: R$ ${prop.aluguel},00/visita</div>
-        <div style="font-size:.75rem;color:var(--cinza2);margin:.2rem 0">${grupoL(casa.grupo)} • ${GRUPOS[casa.grupo]?.length||0} imóveis no grupo</div>
-        <div style="font-size:.72rem;background:var(--azul-bg);color:var(--azul);padding:.3rem .5rem;border-radius:5px;margin-top:.3rem">⭐ Compre todos do grupo → aluguel 2×!</div>
-      </div>
-      <div class="tag-b">💡 EF04MA24 — Problemas monetários</div>
-      <p style="font-size:.83rem;margin:.5rem 0">${jg.avatar} <strong>${jg.nome}</strong> tem <strong style="color:var(--verde)">R$ ${jg.saldo.toFixed(2)}</strong></p>
-      <p style="font-size:.78rem;color:var(--cinza2);margin-bottom:.7rem">Após comprar: R$ ${(jg.saldo-prop.preco).toFixed(2)}</p>
-      ${jg.saldo>=prop.preco
-        ?`<button class="bm bm-c" onclick="comprarProp(${casa.id})">🛒 Comprar por R$ ${prop.preco},00</button>`
-        :`<div style="background:var(--vermelho-bg);color:var(--vermelho);padding:.6rem;border-radius:8px;font-weight:700;font-size:.82rem;margin-bottom:.5rem">❌ Saldo insuficiente (faltam R$ ${(prop.preco-jg.saldo).toFixed(2)})</div>`}
-      <button class="bm bm-p" onclick="fm('mod-prop');proxTurno()">👋 Passar sem comprar</button>`;
-    am('mod-prop');
+    // ── Terreno livre: oferta de compra ──
+    const podComprar=jg.saldo>=prop.preco;
+    const grupoTotal=GRUPOS[casa.grupo]?.length||0;
+    mostrarEvento({
+      emoji:casa.emoji,titulo:casa.nome,
+      narrativa:`Terreno disponível em ${grupoL(casa.grupo)}! ${grupoTotal>1?`Compre todos os ${grupoTotal} imóveis do grupo e dobre o aluguel!`:''}`,
+      cor:casa.cor,
+      reciboHtml:`<div class="r-t">📋 FICHA DO IMÓVEL</div><div class="r-n">${grupoL(casa.grupo)} • Balneário Camboriú</div><div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div><div class="r-l"><span>Preço de compra</span><span style="color:${casa.cor}">R$ ${prop.preco},00</span></div><div class="r-l"><span>Aluguel base</span><span style="color:var(--verde)">R$ ${prop.aluguel},00/visita</span></div><div class="r-l"><span>Com monopólio</span><span style="color:var(--amarelo)">R$ ${prop.aluguel*2},00/visita</span></div><div class="r-l"><span>Seu saldo</span><span>R$ ${jg.saldo.toFixed(0)},00</span></div><div class="r-l"><span>Após comprar</span><span>${podComprar?`R$ ${(jg.saldo-prop.preco).toFixed(0)},00`:'❌ Saldo insuficiente'}</span></div>`,
+      tagHtml:'💡 EF04MA24 — Investimento em imóveis gera renda passiva!',
+      btnTxt:podComprar?`🛒 Comprar por R$ ${prop.preco},00`:'❌ Sem saldo — Passar',
+      btnFn:podComprar?()=>comprarProp(casa.id):proxTurno,
+      btn2Txt:podComprar?'👋 Passar sem comprar':null,
+      btn2Fn:podComprar?proxTurno:null
+    });
+
   } else if(prop.dono===j.ordem[j.turnoIdx]){
-    toast('🏠 Sua propriedade!'); setTimeout(proxTurno,1400);
+    // ── Sua propriedade: opções de desenvolvimento ──
+    const isMono=temMonopolio(meuId,casa.grupo,j);
+    const aluguelAtual=calcularAluguel(prop,isMono);
+    const podeConstruir=!prop.hotel;
+    const custoConstr=prop.hotel?0:prop.casas>=4?Math.floor(prop.preco*.7):Math.floor(prop.preco*.5);
+    const proxTipo=prop.casas>=4?'Hotel':'Casa '+(prop.casas+1);
+    const aluguelProximo=calcularAluguel({...prop,casas:prop.hotel?prop.casas:prop.casas+1,hotel:prop.casas>=4?true:prop.hotel},isMono);
+    const devHtml=`<div class="dev-strip">Estado atual: <strong style="margin-left:.3rem">${devLabel(prop)}</strong></div>
+      <div class="dev-strip">Aluguel atual: <strong style="color:var(--verde);margin-left:.3rem">R$ ${aluguelAtual},00</strong></div>
+      ${podeConstruir&&meuId===j.ordem[j.turnoIdx]?`<div class="dev-strip">Próximo: ${proxTipo} − R$ ${custoConstr},00 → aluguel R$ ${aluguelProximo},00</div>
+      <button class="ev-btn" style="background:var(--verde);color:#07192e;margin-top:.4rem" onclick="comprarDesenvolvimento(${casa.id})">🏗️ Construir ${proxTipo} − R$ ${custoConstr},00</button>
+      ${prop.casas>0||prop.hotel?`<button class="ev-btn ev-btn2" style="margin-top:.3rem" onclick="venderDesenvolvimento(${casa.id})">🏚️ Vender benfeitoria (R$ ${prop.hotel?Math.floor(prop.preco*.35):Math.floor(prop.preco*.25)},00)</button>`:''}`:
+      `<div class="dev-strip" style="color:var(--amarelo)">🏨 Hotel máximo! Melhor aluguel possível!</div>`}
+      <button class="ev-btn ev-btn2" style="margin-top:.4rem" onclick="venderProp(${casa.id})">💸 Vender terreno ao banco (R$ ${Math.floor(prop.preco*.5)},00)</button>`;
+    mostrarEvento({
+      emoji:casa.emoji,titulo:'Sua propriedade!',
+      narrativa:`${casa.nome} é sua! ${isMono?'⭐ MONOPÓLIO! Aluguel dobrado!':'Compre todos do grupo para dobrar o aluguel.'}`,
+      cor:casa.cor,
+      devHtml,
+      btnTxt:'✅ Ok, avançar turno',btnFn:proxTurno
+    });
+
   } else {
+    // ── Propriedade de outro jogador: pagar aluguel ──
     const dono=j.jogadores[prop.dono];
-    const mono=temMonopolio(prop.dono, casa.grupo, j);
-    const aluguelReal=mono?prop.aluguel*2:prop.aluguel;
+    if(!dono){setTimeout(proxTurno,500);return;}
+    const mono=temMonopolio(prop.dono,casa.grupo,j);
+    const aluguelReal=calcularAluguel(prop,mono);
     aluguelPend={prop,dono,jg,casa,j,aluguel:aluguelReal,mono};
-    j.reciboN++;
-    document.getElementById('mod-aluguel-b').innerHTML=`
-      <div class="pcard" style="background:${casa.cor}15;border-color:${casa.cor}">
-        <div class="pcard-em">${casa.emoji}</div>
-        <div class="pcard-nm" style="color:${casa.cor}">${casa.nome}</div>
-        <div style="font-size:.8rem;color:var(--cinza2);margin-top:.2rem">Dono: ${dono.avatar} <strong style="color:${dono.cor}">${dono.nome}</strong></div>
-      </div>
-      ${mono?`<div class="mono-alert">⭐ MONOPÓLIO! ${dono.nome} tem todo o grupo — aluguel 2×!</div>`:''}
-      <div class="recibo">
-        <div class="r-t">🧾 COBRANÇA DE ALUGUEL</div>
-        <div class="r-n">Nº ${j.reciboN} — Balneário Camboriú</div>
-        <div class="r-l"><span>Locatário</span><span>${jg.avatar} ${jg.nome}</span></div>
-        <div class="r-l"><span>Locador</span><span>${dono.avatar} ${dono.nome}</span></div>
-        <div class="r-l"><span>Imóvel</span><span>${casa.nome}</span></div>
-        ${mono?`<div class="r-l"><span>Aluguel base</span><span>R$ ${prop.aluguel},00</span></div>
-                <div class="r-l"><span>Bônus monopolio</span><span style="color:var(--amarelo)">×2</span></div>`:''}
-        <div class="r-l"><span><strong>Valor total</strong></span><span class="rn"><strong>R$ ${aluguelReal},00</strong></span></div>
-      </div>
-      <p style="font-size:.78rem;color:var(--cinza2);margin-top:.5rem">Seu saldo: <strong>R$ ${jg.saldo.toFixed(2)}</strong></p>`;
-    am('mod-aluguel');
-    if(mono) snd('perder');
+    const devInfo=prop.hotel?'🏨 Hotel':prop.casas>0?'🏠'.repeat(prop.casas)+` (${prop.casas} casa${prop.casas>1?'s':''})':'Terreno';
+    const narr=`${dono.avatar} ${dono.nome} é dono de ${casa.nome}! ${mono?'⭐ Tem o grupo todo — aluguel em dobro! ':''} ${prop.hotel?'Hotel de luxo! ':''}Você precisa pagar a diária.`;
+    if(meuId===j.ordem[j.turnoIdx]){
+      snd(mono?'perder':'click');
+      mostrarEvento({
+        emoji:casa.emoji,titulo:`Propriedade de ${escHtml(dono.nome||'')}!`,narrativa:narr,
+        valor:-aluguelReal,cor:mono?'var(--amarelo)':'var(--vermelho)',
+        donoHtml:`<span style="font-size:1.2rem">${dono.avatar}</span> <strong style="color:${dono.cor}">${escHtml(dono.nome||'')}</strong> recebe 💰 <strong style="color:var(--verde)">+ R$ ${aluguelReal},00</strong>`,
+        tagHtml:`💡 ${devInfo} — ${mono?'Monopólio dobra o aluguel!':'Benfeitorias aumentam o aluguel!'}`,
+        reciboHtml:`<div class="r-t">🧾 COBRANÇA DE ALUGUEL</div><div class="r-n">Nº ${(jogo.reciboN||0)+1} — Balneário Camboriú</div><div class="r-l"><span>Locatário</span><span>${jg.avatar} ${escHtml(jg.nome||'')}</span></div><div class="r-l"><span>Locador</span><span>${dono.avatar} ${escHtml(dono.nome||'')}</span></div><div class="r-l"><span>Imóvel</span><span>${devInfo}</span></div>${mono?`<div class="r-l"><span>Monopólio</span><span style="color:var(--amarelo)">× 2</span></div>`:''}<div class="r-l"><span><strong>Total a pagar</strong></span><span class="rn"><strong>R$ ${aluguelReal},00</strong></span></div>`,
+        btnTxt:`💸 Pagar R$ ${aluguelReal},00`,btnFn:confirmarAluguel
+      });
+    } else {
+      setTimeout(proxTurno,800);
+    }
   }
 }
 
 async function confirmarAluguel(){
   if(!aluguelPend)return;
   const {prop,dono,jg,casa,mono}=aluguelPend;
-  const aluguelReal=aluguelPend.aluguel||prop.aluguel;
+  const aluguelReal=aluguelPend.aluguel||calcularAluguel(prop,mono);
   const j=JSON.parse(JSON.stringify(jogo));
   const jgR=j.jogadores[jg.id],donoR=j.jogadores[dono.id];
   if(jgR.saldo<aluguelReal){
     // FALÊNCIA — libera imóveis de volta ao banco
-    (jgR.propriedades||[]).forEach(pid=>{if(j.props[pid])j.props[pid].dono=null;});
+    (jgR.propriedades||[]).forEach(pid=>{if(j.props[pid]){j.props[pid].dono=null;j.props[pid].casas=0;j.props[pid].hotel=false;}});
     jgR.propriedades=[];
     jgR.ativo=false;
-    fm('mod-aluguel');
+    fecharEvento(null);
     document.getElementById('mod-faliu-m').textContent=
       `${jgR.avatar} ${jgR.nome} não tinha saldo para pagar R$ ${aluguelReal},00 de aluguel e FALIU! Seus imóveis voltaram ao mercado.`;
     j.log.push({msg:`💀 ${jgR.nome} faliu! Imóveis liberados.`,tipo:'ls'});
@@ -1513,25 +1783,21 @@ async function confirmarAluguel(){
   jgR.transacoes.push({desc:`Aluguel pago — ${casa.nome}${mono?' (2×)':''}`,valor:aluguelReal,tipo:'saida',data:hoje()});
   donoR.transacoes.push({desc:`Aluguel recebido — ${casa.nome}${mono?' (2×)':''}`,valor:aluguelReal,tipo:'entrada',data:hoje()});
   j.log.push({msg:`💸 ${jgR.nome} pagou R$${aluguelReal} de aluguel para ${donoR.nome}${mono?' ⭐':''}`,tipo:'ls'});
-  document.getElementById('mod-recibo-b').innerHTML=`
-    <div class="recibo">
-      <div class="r-t">✅ RECIBO DE ALUGUEL PAGO</div>
-      <div class="r-n">Nº ${j.reciboN} — QUITADO</div>
-      <div class="r-l"><span>De</span><span>${jgR.avatar} ${jgR.nome}</span></div>
-      <div class="r-l"><span>Para</span><span>${donoR.avatar} ${donoR.nome}</span></div>
-      <div class="r-l"><span>Imóvel</span><span>${casa.nome}</span></div>
-      <div class="r-l"><span>Valor Pago</span><span class="rn">− R$ ${aluguelReal},00${mono?' (2×)':''}</span></div>
-      <div class="r-l"><span>Recebido</span><span class="rp">+ R$ ${aluguelReal},00</span></div>
-      <div class="r-l"><span><strong>Saldo ${jgR.nome}</strong></span><span><strong>R$ ${jgR.saldo.toFixed(2)}</strong></span></div>
-    </div>
-    <div class="tag-b" style="margin-top:.6rem">💡 Aluguel = renda de quem investe em imóveis!</div>`;
-  fm('mod-aluguel');aluguelPend=null;
+  aluguelPend=null;
   snd('pagar');
-  await fbSet('jogos/'+codigoSala,j);jogo=j;
-  am('mod-recibo');atualizarUI();
+  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
+  mostrarEvento({
+    emoji:'✅',titulo:'Aluguel pago!',
+    narrativa:'Transação registrada. Acompanhe seu extrato na aba Banco.',
+    valor:-aluguelReal,cor:'var(--verde)',
+    reciboHtml:`<div class="r-t">✅ RECIBO QUITADO</div><div class="r-n">Nº ${j.reciboN} — QUITADO</div><div class="r-l"><span>De</span><span>${jgR.avatar} ${escHtml(jgR.nome||'')}</span></div><div class="r-l"><span>Para</span><span>${donoR.avatar} ${escHtml(donoR.nome||'')}</span></div><div class="r-l"><span>Imóvel</span><span>${casa.nome}</span></div><div class="r-l"><span>Valor</span><span class="rn">− R$ ${aluguelReal},00</span></div><div class="r-l"><span>Recebido</span><span class="rp">+ R$ ${aluguelReal},00</span></div><div class="r-l"><span><strong>Seu saldo</strong></span><span><strong>R$ ${jgR.saldo.toFixed(0)},00</strong></span></div>`,
+    tagHtml:'💡 Aluguel é renda de quem investiu em imóveis. Compre os seus!',
+    btnTxt:'Entendido! Avançar',btnFn:proxTurno
+  });
 }
 
 async function comprarProp(id){
+  if(!ehMinhaVez())return;
   const j=JSON.parse(JSON.stringify(jogo));
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
   const prop=j.props[id];
@@ -1544,24 +1810,16 @@ async function comprarProp(id){
   // Check if this completes a monopoly
   const mono=temMonopolio(j.ordem[j.turnoIdx],casa.grupo,j);
   if(mono) j.log.push({msg:`⭐ ${jg.nome} completou o grupo ${grupoL(casa.grupo)}! Aluguel 2×!`,tipo:'le'});
-  document.getElementById('mod-recibo-b').innerHTML=`
-    <div class="recibo">
-      <div class="r-t">🏠 RECIBO DE COMPRA DE IMÓVEL</div>
-      <div class="r-n">Nº ${j.reciboN} — Balneário Camboriú • SC</div>
-      <div class="r-l"><span>Comprador</span><span>${jg.avatar} ${jg.nome}</span></div>
-      <div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div>
-      <div class="r-l"><span>Grupo</span><span>${grupoL(casa.grupo)}</span></div>
-      <div class="r-l"><span>Valor Pago</span><span class="rn">− R$ ${prop.preco},00</span></div>
-      <div class="r-l"><span>Renda/visita</span><span class="rp">R$ ${prop.aluguel}${mono?' → 2× = R$'+(prop.aluguel*2):''}</span></div>
-      <div class="r-l"><span><strong>Novo Saldo</strong></span><span><strong>R$ ${jg.saldo.toFixed(2)}</strong></span></div>
-    </div>
-    ${mono?`<div class="mono-alert" style="margin-top:.6rem">⭐ MONOPÓLIO! Aluguel cobrado em dobro!</div>`:''}
-    <div class="tag-b" style="margin-top:.6rem">💡 Ótimo investimento! Você vai receber aluguel!</div>`;
-  fm('mod-prop');
   snd(mono?'vitoria':'comprar');
-  if(mono) toast('⭐ MONOPÓLIO! Grupo completo! Aluguel 2×!');
-  await fbSet('jogos/'+codigoSala,j);jogo=j;
-  am('mod-recibo');atualizarUI();
+  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();renderBoard();
+  mostrarEvento({
+    emoji:casa.emoji,titulo:mono?'⭐ MONOPÓLIO!':'Imóvel comprado!',
+    narrativa:mono?`Você comprou todos os imóveis de ${grupoL(casa.grupo)}! O aluguel dobrou para todos do grupo! Agora ganhe R$ ${prop.aluguel*2},00 por visita!`:`Parabéns! ${casa.nome} é seu. Cada vez que alguém parar aqui, você recebe R$ ${prop.aluguel},00!`,
+    valor:-prop.preco,cor:mono?'var(--amarelo)':casa.cor,
+    reciboHtml:`<div class="r-t">🏠 RECIBO DE COMPRA</div><div class="r-n">Nº ${j.reciboN} — Balneário Camboriú • SC</div><div class="r-l"><span>Comprador</span><span>${jg.avatar} ${escHtml(jg.nome||'')}</span></div><div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div><div class="r-l"><span>Grupo</span><span>${grupoL(casa.grupo)}</span></div><div class="r-l"><span>Valor Pago</span><span class="rn">− R$ ${prop.preco},00</span></div><div class="r-l"><span>Aluguel</span><span class="rp">R$ ${prop.aluguel}${mono?' → 2× = R$'+(prop.aluguel*2)+'':''}</span></div><div class="r-l"><span><strong>Novo Saldo</strong></span><span><strong>R$ ${jg.saldo.toFixed(0)},00</strong></span></div>`,
+    tagHtml:'💡 Dono de imóvel recebe aluguel. Construa casas para ganhar mais!',
+    btnTxt:'Ótimo investimento! 🏠',btnFn:proxTurno
+  });
 }
 
 // Vender imóvel de volta ao banco (50%)
@@ -1576,14 +1834,13 @@ async function venderProp(id){
   const valorVenda=Math.floor(prop.preco*0.5);
   jg.saldo+=valorVenda;
   jg.propriedades=jg.propriedades.filter(pid=>pid!==id);
-  prop.dono=null;
+  prop.dono=null;prop.casas=0;prop.hotel=false;
   j.reciboN++;
   jg.transacoes.push({desc:`Venda — ${casa.nome}`,valor:valorVenda,tipo:'entrada',data:hoje()});
   j.log.push({msg:`🏚️ ${jg.nome} vendeu ${casa.nome} por R$${valorVenda}`,tipo:'lv'});
   snd('ganhar');
   await fbSet('jogos/'+codigoSala,j);jogo=j;
-  atualizarUI();
-  toast(`✅ ${casa.nome} vendido por R$${valorVenda}!`);
+  fecharEvento(()=>{atualizarUI();renderBoard();toast(`✅ ${casa.nome} vendido por R$${valorVenda}!`);if(jogo?.fase==='processando')proxTurno();});
 }
 
 // =====================================================
@@ -1592,7 +1849,8 @@ async function venderProp(id){
 async function abrirCarta(j){
   const carta=CARTAS[Math.floor(Math.random()*CARTAS.length)];
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
-  if(carta.tipo==='ganhar'){
+  const ganhou=carta.tipo==='ganhar';
+  if(ganhou){
     jg.saldo+=carta.valor;
     jg.transacoes.push({desc:'Carta: '+carta.titulo,valor:carta.valor,tipo:'entrada',data:hoje()});
     j.log.push({msg:`🃏 ${jg.nome}: ${carta.titulo} +R$${carta.valor}`,tipo:'le'});
@@ -1603,11 +1861,18 @@ async function abrirCarta(j){
     j.log.push({msg:`🃏 ${jg.nome}: ${carta.titulo} -R$${carta.valor}`,tipo:'ls'});
     snd('perder');
   }
-  await fbSet('jogos/'+codigoSala,j);jogo=j;
-  toast((carta.tipo==='ganhar'?'🃏 '+carta.titulo+' +R$':'🃏 '+carta.titulo+' -R$')+carta.valor);
-  atualizarUI();
-  // Auto-avança sem precisar de clique do jogador
-  setTimeout(proxTurno, 2800);
+  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
+  if(meuId===j.ordem[j.turnoIdx]){
+    mostrarEvento({
+      emoji:carta.emoji,titulo:carta.titulo,narrativa:carta.desc,
+      valor:ganhou?carta.valor:-carta.valor,
+      cor:ganhou?'var(--verde)':'var(--vermelho)',
+      tagHtml:`💡 ${ganhou?'Renda extra! Sempre guarde uma parte do que receber.':'Gastos imprevistos acontecem. Uma reserva de emergência ajuda!'}`,
+      btnTxt:ganhou?'Que sorte! 🎉':'Entendido! 😅',btnFn:proxTurno
+    });
+  } else {
+    setTimeout(proxTurno,1800);
+  }
 }
 
 // =====================================================
@@ -1620,11 +1885,19 @@ async function abrirImposto(casa,j){
   jg.transacoes.push({desc:'Imposto — '+casa.nome,valor:val,tipo:'saida',data:hoje()});
   j.log.push({msg:`🏛️ ${jg.nome} pagou imposto R$${val}`,tipo:'ls'});
   snd('pagar');
-  await fbSet('jogos/'+codigoSala,j);jogo=j;
-  toast('🏛️ '+casa.nome+' − R$'+val);
-  atualizarUI();
-  // Auto-avança sem precisar de clique
-  setTimeout(proxTurno, 2500);
+  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
+  const narr=NARRATIVAS_IMPOSTO[casa.nome]||`Imposto cobrado pelo governo de BC. É com esses recursos que a cidade funciona!`;
+  if(meuId===j.ordem[j.turnoIdx]){
+    mostrarEvento({
+      emoji:casa.emoji||'🏛️',titulo:casa.nome,narrativa:narr,
+      valor:-val,cor:'var(--vermelho)',
+      tagHtml:`💡 ${casa.tipo==='imposto'&&casa.nome.includes('Multa')?'Multas ensinam sobre responsabilidade no trânsito!':'Impostos financiam escolas, saúde e praias de BC!'}`,
+      reciboHtml:`<div class="r-t">🧾 RECIBO DE PAGAMENTO</div><div class="r-n">Prefeitura de Balneário Camboriú</div><div class="r-l"><span>Tributo</span><span>${casa.nome}</span></div><div class="r-l"><span>Contribuinte</span><span>${jg.avatar} ${escHtml(jg.nome||'')}</span></div><div class="r-l"><span><strong>Valor Pago</strong></span><span class="rn"><strong>− R$ ${val},00</strong></span></div><div class="r-l"><span>Novo Saldo</span><span>R$ ${jg.saldo.toFixed(0)},00</span></div>`,
+      btnTxt:'Paguei! 😤',btnFn:proxTurno
+    });
+  } else {
+    setTimeout(proxTurno,1200);
+  }
 }
 
 // =====================================================
@@ -1742,7 +2015,7 @@ function encerrar(){
       <div class="rki-pos">${m[i]||''}</div>
       <div class="rki-av" style="border-color:${jg.cor};background:${jg.cor}22">${jg.avatar}</div>
       <div class="rki-info">
-        <div class="rki-nm">${jg.nome}</div>
+        <div class="rki-nm">${escHtml(jg.nome||'')}</div>
         <div class="rki-det">💰 R$${jg.saldo.toFixed(0)} + 🏠 R$${jg.valorImoveis.toFixed(0)} (${(jg.propriedades||[]).length} imóvel/is) = R$${jg.patrimonio.toFixed(0)} • ${jg.voltas} volta(s)</div>
       </div>
       <div class="rki-s" style="color:${jg.cor}">R$ ${jg.patrimonio.toFixed(0)}</div>
@@ -1797,7 +2070,7 @@ function renderAba(t){
         <div class="pjc-row">
           <div class="pjc-av" style="border-color:${jg.cor};background:${jg.cor}22">${jg.avatar}</div>
           <div style="flex:1;min-width:0">
-            <div class="pjc-nome">${jg.nome}${isEu?' <span style="font-size:.6rem;color:var(--azul)">(você)</span>':''}
+            <div class="pjc-nome">${escHtml(jg.nome||'')}${isEu?' <span style="font-size:.6rem;color:var(--azul)">(você)</span>':''}
             ${!isEu&&jg.online===false?'<span class="disco-badge aguardando" title="Desconectado — aguardando reconexão">⚡ desconectado</span>':''}</div>
             <div class="pjc-saldo" style="color:${jg.cor}">R$ ${jg.saldo.toFixed(0)} <span style="font-size:.6rem;color:var(--cinza2)">(+R$${(patrimonio-jg.saldo).toFixed(0)} imóveis)</span></div>
             <div class="pjc-pos">📍 ${CASAS[jg.posicao]?.nome||'—'} • ${jg.voltas}/3 voltas</div>
@@ -1818,7 +2091,7 @@ function renderAba(t){
         ${minhaVez?`
           <select class="ssel" id="s-dest">
             <option value="">Selecionar jogador...</option>
-            ${outros.map(id=>`<option value="${id}">${j.jogadores[id].avatar} ${j.jogadores[id].nome}</option>`).join('')}
+            ${outros.map(id=>`<option value="${id}">${j.jogadores[id].avatar} ${escHtml(j.jogadores[id].nome||'')}</option>`).join('')}
           </select>
           <input type="number" class="sinp" id="s-val" placeholder="Valor (R$)" min="1" onkeydown="if(event.key==='Enter')fazerTransferencia()">
           <button class="sbtn sbtn-v" onclick="fazerTransferencia()">💸 Transferir</button>
@@ -1844,7 +2117,7 @@ function renderAba(t){
         return `<div class="im-row" style="border-left-color:${GRUPO_COR[casa.grupo]||casa.cor}">
           <div style="flex:1">
             <div class="im-nome">${casa.emoji} ${casa.nome}${mono?' <span style="color:var(--amarelo)">⭐</span>':''}</div>
-            <div class="im-d">${dono?dono.avatar+' '+dono.nome:'🟢 Disponível'} • R$${prop.aluguel}${mono?' ×2':''}$/vis.</div>
+            <div class="im-d">${dono?dono.avatar+' '+escHtml(dono.nome||''):'🟢 Disponível'} • R$${prop.aluguel}${mono?' ×2':''}$/vis.</div>
           </div>
           <div style="text-align:right">
             <div class="im-v" style="color:${casa.cor}">R$${prop.preco}</div>
@@ -1855,7 +2128,7 @@ function renderAba(t){
 
   } else if(t==='log'){
     body.innerHTML=[...(j.log||[])].reverse().slice(0,35).map(l=>
-      `<div class="log-row ${l.tipo}">${l.msg}</div>`).join('')||
+      `<div class="log-row ${l.tipo}">${escHtml(l.msg||'')}</div>`).join('')||
       '<p style="font-size:.76rem;color:var(--cinza2)">Nenhum evento.</p>';
 
   } else if(t==='chat'){
@@ -1971,7 +2244,7 @@ async function verificarDesconectados(){
       const elapsed=agora-jg.desconectadoEm;
       if(elapsed>TIMEOUT){
         // Liberar imóveis e remover jogador
-        (jg.propriedades||[]).forEach(pid=>{if(j.props&&j.props[pid])j.props[pid].dono=null;});
+        (jg.propriedades||[]).forEach(pid=>{if(j.props&&j.props[pid]){j.props[pid].dono=null;j.props[pid].casas=0;j.props[pid].hotel=false;}});
         jg.propriedades=[];
         jg.ativo=false;
         j.log.push({msg:`⚡ ${jg.nome} foi removido por desconexão (2 min). Imóveis liberados.`,tipo:'ls'});
