@@ -24,21 +24,21 @@
 body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min-height:100vh;overflow-x:hidden}
 
 /* ====== DADO 2D (compatível com overflow:hidden) ====== */
-.dado-cena{width:72px;height:72px;flex-shrink:0;perspective:none}
-.dado-cubo{width:72px;height:72px;position:relative}
+.dado-cena{width:80px;height:80px;flex-shrink:0;perspective:none}
+.dado-cubo{width:80px;height:80px;position:relative}
 .dado-face{display:none}
 /* Dado visual principal */
-.dado-2d{width:72px;height:72px;
-  background:linear-gradient(145deg,#f0f8ff,#c8e0f8);
-  border:3px solid #6aabdf;border-radius:14px;
-  display:grid;padding:9px;gap:4px;
-  box-shadow:0 4px 18px rgba(0,0,0,.35),inset 0 2px 6px rgba(255,255,255,.9),inset 0 -2px 4px rgba(100,160,220,.3);
-  transition:transform .08s ease;position:relative;overflow:hidden}
-.dado-2d::after{content:'';position:absolute;top:0;left:0;right:0;height:35%;
-  background:linear-gradient(rgba(255,255,255,.6),transparent);border-radius:11px 11px 0 0;pointer-events:none}
-.pip{width:12px;height:12px;border-radius:50%;
-  background:radial-gradient(circle at 35% 35%,#1a5080,#0a2840);
-  box-shadow:inset 0 2px 3px rgba(0,0,0,.4),0 1px 1px rgba(255,255,255,.2)}
+.dado-2d{width:80px;height:80px;
+  background:linear-gradient(145deg,#ffffff,#daeeff);
+  border:3px solid #5aaee0;border-radius:16px;
+  display:grid;padding:10px;gap:5px;
+  box-shadow:0 6px 24px rgba(0,0,0,.45),inset 0 2px 8px rgba(255,255,255,.9),inset 0 -2px 5px rgba(80,150,220,.25);
+  position:relative;overflow:hidden}
+.dado-2d::after{content:'';position:absolute;top:0;left:0;right:0;height:38%;
+  background:linear-gradient(rgba(255,255,255,.7),transparent);border-radius:13px 13px 0 0;pointer-events:none}
+.pip{width:13px;height:13px;border-radius:50%;
+  background:radial-gradient(circle at 33% 33%,#1a5080,#071828);
+  box-shadow:inset 0 2px 3px rgba(0,0,0,.5),0 1px 2px rgba(255,255,255,.25)}
 /* Layouts de pontos por face */
 .d1{grid-template-areas:'a b c''d e f''g h i';place-items:center}
 .d1 .pip:only-child{grid-area:e}
@@ -47,11 +47,33 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 .d4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;place-items:center}
 .d5{grid-template-areas:'a . c''. e .''g . i';place-items:center}
 .d6{grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);place-items:center}
-@keyframes dadoBounce{0%,100%{transform:scale(1) rotate(-2deg)}50%{transform:scale(1.06) rotate(2deg)}}
-@keyframes dadoShake{0%,100%{transform:rotate(-8deg) scale(.95)}25%{transform:rotate(12deg) scale(1.08)}50%{transform:rotate(-10deg) scale(.92)}75%{transform:rotate(8deg) scale(1.05)}}
+/* ── Dado: giro real + pouso com mola + pop do número ── */
+@keyframes dadoGiro{
+  0%  {transform:scale(1)    rotate(0deg)    translateY(0)}
+  18% {transform:scale(1.35) rotate(-100deg) translateY(-8px)}
+  38% {transform:scale(1.5)  rotate(-220deg) translateY(-14px)}
+  58% {transform:scale(1.45) rotate(-320deg) translateY(-10px)}
+  78% {transform:scale(1.2)  rotate(-355deg) translateY(-3px)}
+  100%{transform:scale(1)    rotate(-360deg) translateY(0)}
+}
+@keyframes dadoPouso{
+  0%  {transform:scale(1.3)}
+  30% {transform:scale(0.85)}
+  55% {transform:scale(1.1)}
+  75% {transform:scale(0.95)}
+  90% {transform:scale(1.03)}
+  100%{transform:scale(1)}
+}
+@keyframes numPop{
+  0%  {transform:scale(0) translateY(6px);opacity:0}
+  65% {transform:scale(1.4) translateY(-2px);opacity:1}
+  82% {transform:scale(.9)}
+  100%{transform:scale(1) translateY(0)}
+}
 @keyframes dadoGlow{0%,100%{box-shadow:0 4px 18px rgba(0,0,0,.35),0 0 0 0 #3DB8FF44}50%{box-shadow:0 4px 24px rgba(0,0,0,.35),0 0 18px 6px #3DB8FF33}}
 .dado-vez .dado-2d{animation:dadoGlow 1.2s ease-in-out infinite}
-.dado-rolando .dado-2d{animation:dadoShake .15s linear infinite}
+.dado-rolando .dado-2d{animation:dadoGiro 1.2s cubic-bezier(.4,0,.4,1) forwards;border-color:#3DB8FF}
+.dado-pousando .dado-2d{animation:dadoPouso .55s cubic-bezier(.34,1.56,.64,1) forwards}
 
 @keyframes pulseGlow2{0%,100%{box-shadow:0 0 0 0 #00E5A044}50%{box-shadow:0 0 14px 5px #00E5A022}}
 @keyframes popIn{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
@@ -176,10 +198,14 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 .snd-btn:hover{border-color:var(--azul)}
 
 /* TABULEIRO */
-.board-wrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:.8rem;background:var(--bg)}
+.board-wrap{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:.8rem;background:var(--bg)}
 .board-wrap::-webkit-scrollbar{width:5px;height:5px}
 .board-wrap::-webkit-scrollbar-thumb{background:var(--borda);border-radius:3px}
-#svg-board{width:700px;min-width:700px;height:700px}
+/* SVG escala para caber na altura E largura disponíveis sem distorcer */
+#svg-board{
+  width:min(700px, calc(100vw - 285px - 1.6rem), calc(100dvh - 150px));
+  min-width:0;height:auto;
+}
 
 /* BARRA AÇÃO */
 .acao{background:var(--card2);border-top:1px solid var(--borda);padding:.65rem .8rem;display:flex;align-items:center;gap:.7rem;flex-shrink:0}
@@ -261,10 +287,88 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   .sb{position:fixed;left:-290px;z-index:60;box-shadow:4px 0 24px rgba(0,0,0,.6)}
   .sb.aberta{left:0}
   .sb-top-btn{display:flex}
-  #svg-board{width:100%;min-width:0;height:auto}
+  #svg-board{width:min(100%,calc(100dvh - 115px));min-width:0;height:auto}
   .btn-dado-big{font-size:.9rem;padding:.55rem .9rem}
   .acao{gap:.4rem;padding:.5rem .5rem}
   .acao-txt{display:none}
+  /* ── Fixes mobile: tabuleiro sempre visível do topo ── */
+  #tela-jogo{height:100dvh}                          /* iOS Safari: altura real sem barra de endereço */
+  .board-wrap{align-items:flex-start;padding:.3rem}  /* evita o bug: overflow:auto + center esconde topo */
+  .main-top{flex-wrap:nowrap;padding:.35rem .5rem;gap:.3rem;overflow:hidden}
+  .dado-cena,.dado-cubo{width:56px;height:56px}      /* dado menor = mais espaço pro tabuleiro */
+  .dado-2d{width:56px;height:56px;padding:7px;gap:3px;border-radius:11px}
+  #dado-num{font-size:1.6rem;min-width:28px}
+}
+
+/* ====== OVERLAY DADO CENTRAL ====== */
+#dado-overlay{
+  display:none;position:fixed;inset:0;z-index:250;
+  flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(4,14,28,.82);backdrop-filter:blur(10px);
+  pointer-events:none;
+}
+#dado-overlay.vis{display:flex}
+#dado-ov-inner{display:flex;flex-direction:column;align-items:center;gap:.55rem}
+#dado-ov-titulo{
+  font-size:.72rem;font-weight:800;color:var(--azul);
+  letter-spacing:3px;text-transform:uppercase;opacity:.85;
+}
+#dado-ov-face{
+  width:160px;height:160px;
+  background:linear-gradient(145deg,#ffffff,#daeeff);
+  border:4px solid #5aaee0;border-radius:26px;
+  display:grid;padding:16px;gap:9px;
+  box-shadow:0 20px 80px rgba(0,0,0,.8),0 0 90px rgba(61,184,255,.18),
+             inset 0 3px 14px rgba(255,255,255,.9),inset 0 -4px 8px rgba(80,150,220,.3);
+  position:relative;overflow:hidden;transform-origin:center;
+}
+#dado-ov-face::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:38%;
+  background:linear-gradient(rgba(255,255,255,.65),transparent);
+  border-radius:22px 22px 0 0;pointer-events:none;
+}
+#dado-ov-face .pip{width:22px;height:22px}
+#dado-ov-num{
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(4rem,18vw,7rem);
+  color:var(--amarelo);
+  text-shadow:0 0 60px #FFD23F99,0 5px 0 rgba(0,0,0,.7);
+  line-height:1;
+}
+/* Animações overlay */
+@keyframes ovEntrar{
+  0%  {opacity:0;transform:scale(.15) rotate(-140deg)}
+  55% {opacity:1;transform:scale(1.13) rotate(7deg)}
+  75% {transform:scale(.95) rotate(-3deg)}
+  100%{opacity:1;transform:scale(1) rotate(0deg)}
+}
+@keyframes ovGiro{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
+@keyframes ovPouso{
+  0%  {transform:scale(1.28)}
+  30% {transform:scale(.84)}
+  56% {transform:scale(1.09)}
+  76% {transform:scale(.96)}
+  100%{transform:scale(1)}
+}
+@keyframes ovNumPop{
+  0%  {opacity:0;transform:scale(0) translateY(16px)}
+  60% {opacity:1;transform:scale(1.35) translateY(-5px)}
+  80% {transform:scale(.9)}
+  100%{opacity:1;transform:scale(1) translateY(0)}
+}
+@keyframes ovSair{
+  0%  {opacity:1;transform:scale(1)}
+  35% {transform:scale(1.1)}
+  100%{opacity:0;transform:scale(0)}
+}
+@media(max-width:600px){
+  #dado-ov-face{width:130px;height:130px;padding:13px;gap:7px;border-radius:20px}
+  #dado-ov-face .pip{width:17px;height:17px}
+  /* ── Alinhamento do cabeçalho no mobile ── */
+  .logo-top-row{margin-left:0;justify-content:center;gap:.5rem}
+  .logo-h{font-size:1.6rem;white-space:normal;word-break:keep-all}
+  .logo-sub{font-size:.66rem;letter-spacing:1.5px}
+  .badge-free{font-size:.65rem;text-align:center}
 }
 
 /* SPINNER */
@@ -397,7 +501,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
           <div class="dado-2d d1" id="dado-visual"><div class="pip"></div></div>
         </div>
       </div>
-      <div id="dado-num" style="font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--amarelo);min-width:32px;text-align:center">—</div>
+      <div id="dado-num" style="font-family:'Fredoka One',cursive;font-size:2.2rem;color:var(--amarelo);min-width:36px;text-align:center;text-shadow:0 0 12px #FFD23F66;line-height:1">—</div>
       <div class="acao-txt">
         <div class="acao-t" id="acao-t">Aguardando...</div>
         <div class="acao-s" id="acao-s">— pressione Espaço para rolar</div>
@@ -437,7 +541,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 
 <!-- MODAIS -->
 <div class="ov" id="mod-prop"><div class="mbox">
-  <div class="mh"><h3 id="mod-prop-h">Propriedade</h3><button class="mc" onclick="fm('mod-prop')">✕</button></div>
+  <div class="mh"><h3 id="mod-prop-h">Propriedade</h3><button class="mc" onclick="fm('mod-prop');proxTurno()">✕</button></div>
   <div id="mod-prop-b"></div>
 </div></div>
 
@@ -483,6 +587,15 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   <button class="bm bm-c" onclick="copiar();fm('mod-cod')">📋 Copiar Código</button>
   <button class="bm bm-p" onclick="fm('mod-cod')">Fechar</button>
 </div></div>
+
+<!-- ====== OVERLAY DADO CENTRAL ====== -->
+<div id="dado-overlay">
+  <div id="dado-ov-inner">
+    <div id="dado-ov-titulo">🎲 VOCÊ TIROU</div>
+    <div id="dado-ov-face" class="d1"><div class="pip"></div></div>
+    <div id="dado-ov-num"></div>
+  </div>
+</div>
 
 <script>
 // =====================================================
@@ -1132,46 +1245,128 @@ function renderBoard(){
 }
 
 // =====================================================
-// DADO — ANIMAÇÃO 3D
+// DADO — ANIMAÇÃO 2D COM PONTOS REAIS
 // =====================================================
-const FACES_ROT={
-  1:{rx:0,ry:0},2:{rx:0,ry:180},3:{rx:0,ry:-90},
-  4:{rx:0,ry:90},5:{rx:-90,ry:0},6:{rx:90,ry:0}
-};
-
 function gerarNumeroAleatorio(){
   const arr=new Uint32Array(1);
   crypto.getRandomValues(arr);
   return (arr[0]%6)+1;
 }
 
+// Renderiza a face correta do dado com pontos no layout exato de um dado real
+function mostrarFaceDado(n){
+  const el=document.getElementById('dado-visual');
+  if(!el)return;
+  const P='<div class="pip"></div>';
+  const GP=a=>`<div class="pip" style="grid-area:${a}"></div>`;
+  const faces={
+    1:{c:'d1',h:P},
+    2:{c:'d2',h:GP('1/2')+GP('2/1')},       // topo-dir + baixo-esq
+    3:{c:'d3',h:GP('a')+GP('e')+GP('i')},   // diagonal via grid-area nomeada
+    4:{c:'d4',h:P+P+P+P},                   // 2×2 auto-place funciona
+    5:{c:'d5',h:GP('a')+GP('c')+GP('e')+GP('g')+GP('i')},
+    6:{c:'d6',h:P+P+P+P+P+P}               // 2×3 auto-place funciona
+  };
+  const f=faces[n]||faces[1];
+  el.className='dado-2d '+f.c;
+  el.innerHTML=f.h;
+}
+
 let dadoAnimando=false;
+
+// Mostra a face correta no overlay grande do centro do tabuleiro
+function mostrarFaceOverlay(n){
+  const el=document.getElementById('dado-ov-face');
+  if(!el)return;
+  const P='<div class="pip"></div>';
+  const GP=a=>`<div class="pip" style="grid-area:${a}"></div>`;
+  const faces={
+    1:{c:'d1',h:P},
+    2:{c:'d2',h:GP('1/2')+GP('2/1')},
+    3:{c:'d3',h:GP('a')+GP('e')+GP('i')},
+    4:{c:'d4',h:P+P+P+P},
+    5:{c:'d5',h:GP('a')+GP('c')+GP('e')+GP('g')+GP('i')},
+    6:{c:'d6',h:P+P+P+P+P+P}
+  };
+  const f=faces[n]||faces[1];
+  el.className=f.c; // mantém só o layout grid
+  el.innerHTML=f.h;
+}
 
 function rolarDado(){
   if(!ehMinhaVez()||jogo.fase!=='aguardando-dado'||dadoAnimando)return;
   dadoAnimando=true;
   document.getElementById('btn-dado').disabled=true;
-  document.getElementById('dado-num').textContent='…';
-  const wrap=document.getElementById('dado3d');
-  if(wrap)wrap.classList.add('dado-rolando');
   snd('dado');
 
-  const resultado=gerarNumeroAleatorio();
-  let tick=0;
-  const totalTicks=18; // ~1.3s a 70ms/tick
+  // Pequeno dado na barra — spin sutil
+  const wrapSB=document.getElementById('dado3d');
+  const numEl=document.getElementById('dado-num');
+  numEl.style.animation='none';
+  numEl.textContent='…';
+  if(wrapSB)wrapSB.classList.add('dado-rolando');
 
-  const iv=setInterval(()=>{
-    tick++;
-    mostrarFaceDado((tick%6)+1);
-    if(tick>=totalTicks){
-      clearInterval(iv);
-      mostrarFaceDado(resultado);
-      if(wrap)wrap.classList.remove('dado-rolando');
-      document.getElementById('dado-num').textContent=resultado;
-      dadoAnimando=false;
-      moverJogador(resultado);
-    }
-  },70);
+  const resultado=gerarNumeroAleatorio();
+
+  // ── Overlay central: dado cresce no meio do tabuleiro ──
+  const ov   = document.getElementById('dado-overlay');
+  const ovF  = document.getElementById('dado-ov-face');
+  const ovN  = document.getElementById('dado-ov-num');
+
+  // Reset overlay
+  ovN.style.cssText='opacity:0;transform:scale(0)';
+  ovF.style.animation='ovEntrar .42s cubic-bezier(.34,1.56,.64,1) forwards';
+  mostrarFaceOverlay(1);
+  ov.classList.add('vis');
+
+  // 420ms depois (entrada concluída) — começa a girar e trocar faces
+  setTimeout(()=>{
+    ovF.style.animation='ovGiro .2s linear infinite';
+
+    let tick=0;
+    const iv=setInterval(()=>{
+      tick++;
+      try{ mostrarFaceDado((tick%6)+1); mostrarFaceOverlay((tick%6)+1); }catch(e){}
+
+      if(tick>=8){ // 8 × 100ms = 800ms de giro
+        clearInterval(iv);
+
+        // Para o giro → pouso com mola
+        ovF.style.animation='none';
+        void ovF.offsetWidth; // force reflow
+        ovF.style.animation='ovPouso .55s cubic-bezier(.34,1.56,.64,1) forwards';
+        try{ mostrarFaceDado(resultado); mostrarFaceOverlay(resultado); }catch(e){}
+
+        // 250ms depois → número grande aparece no overlay
+        setTimeout(()=>{
+          ovN.style.cssText='animation:ovNumPop .5s cubic-bezier(.34,1.56,.64,1) forwards';
+          ovN.textContent=resultado;
+          // Número pequeno na barra também
+          numEl.textContent=resultado;
+          void numEl.offsetWidth;
+          numEl.style.animation='numPop .45s cubic-bezier(.34,1.56,.64,1) forwards';
+        }, 250);
+
+        // 1.4s de resultado → overlay some, jogo continua
+        setTimeout(()=>{
+          ov.style.animation='ovSair .4s ease-in forwards';
+          // Chama moverJogador enquanto overlay está saindo
+          dadoAnimando=false;
+          moverJogador(resultado);
+          setTimeout(()=>{
+            ov.classList.remove('vis');
+            ov.style.animation='';
+            ovF.style.animation='';
+            if(wrapSB){
+              wrapSB.classList.remove('dado-rolando');
+              wrapSB.classList.add('dado-pousando');
+              setTimeout(()=>wrapSB.classList.remove('dado-pousando'),600);
+            }
+          }, 420);
+        }, 1400);
+      }
+    },100);
+  }, 420);
 }
 
 // Spacebar shortcut
@@ -1499,18 +1694,27 @@ async function fazerTransferencia(){
 // =====================================================
 // PRÓXIMO TURNO
 // =====================================================
+let proxTurnoEmAndamento=false;
 async function proxTurno(){
-  const j=JSON.parse(JSON.stringify(jogo));
-  const ativos=j.ordem.filter(id=>j.jogadores[id]?.ativo);
-  if(ativos.length<=1){encerrar();return;}
-  if(j.ordem.some(id=>j.jogadores[id]?.voltas>=3)){encerrar();return;}
-  let prox=(j.turnoIdx+1)%j.ordem.length,t=0;
-  while(!j.jogadores[j.ordem[prox]]?.ativo&&t++<j.ordem.length)
-    prox=(prox+1)%j.ordem.length;
-  j.turnoIdx=prox;j.turno++;
-  j.fase='aguardando-dado';
-  await fbSet('jogos/'+codigoSala,j);
-  jogo=j;atualizarUI();
+  // Guarda dupla: evita avançar 2× se modal for fechado duas vezes seguidas
+  if(proxTurnoEmAndamento)return;
+  if(jogo?.fase==='aguardando-dado')return; // já avançado, ignorar
+  proxTurnoEmAndamento=true;
+  try{
+    const j=JSON.parse(JSON.stringify(jogo));
+    const ativos=j.ordem.filter(id=>j.jogadores[id]?.ativo);
+    if(ativos.length<=1){encerrar();return;}
+    if(j.ordem.some(id=>j.jogadores[id]?.voltas>=3)){encerrar();return;}
+    let prox=(j.turnoIdx+1)%j.ordem.length,t=0;
+    while(!j.jogadores[j.ordem[prox]]?.ativo&&t++<j.ordem.length)
+      prox=(prox+1)%j.ordem.length;
+    j.turnoIdx=prox;j.turno++;
+    j.fase='aguardando-dado';
+    await fbSet('jogos/'+codigoSala,j);
+    jogo=j;atualizarUI();
+  }finally{
+    proxTurnoEmAndamento=false;
+  }
 }
 
 // =====================================================
