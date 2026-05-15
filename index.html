@@ -995,17 +995,10 @@ function escutarJogo(){
   escutarJogoOff=fbOn('jogos/'+codigoSala,snap=>{
     const j=snap.val();
     if(!j)return;
-    const faseAnt=jogo?.fase;
     const turnoAnt=jogo?.turno;
     jogo=j;
     atualizarUI();
-    if(j.fase==='processando'&&faseAnt!=='processando'){
-      const jogadorDaVez=j.ordem[j.turnoIdx];
-      if(jogadorDaVez===meuId){
-        setTimeout(()=>processarCasa(JSON.parse(JSON.stringify(j))),700);
-      }
-    }
-    // Sound: new turn notification for this player
+    // Som de notificação quando começa minha vez
     if(turnoAnt&&j.turno!==turnoAnt&&j.ordem[j.turnoIdx]===meuId&&j.fase==='aguardando-dado'){
       snd('notif');
     }
@@ -1031,14 +1024,14 @@ function atualizarUI(){
   if(ehMinhaVez()){
     mv.style.display='block'; vo.textContent='';
     document.getElementById('btn-dado').disabled=jogo.fase!=='aguardando-dado';
-    document.getElementById('dado3d').classList.add('dado-vez');
+    const _d3=document.getElementById('dado3d');if(_d3)_d3.classList.add('dado-vez');
     document.getElementById('acao-t').textContent='Sua vez! Clique em Rolar Dado!';
     document.getElementById('acao-s').textContent='Turno '+jogo.turno+' • Sala '+codigoSala+' • [Espaço] para rolar';
   } else {
     mv.style.display='none';
     vo.textContent=jA?'Vez de '+jA.avatar+' '+jA.nome:'';
     document.getElementById('btn-dado').disabled=true;
-    document.getElementById('dado3d').classList.remove('dado-vez');
+    const _d3b=document.getElementById('dado3d');if(_d3b)_d3b.classList.remove('dado-vez');
     document.getElementById('acao-t').textContent=jA?'Vez de '+jA.nome:'—';
     document.getElementById('acao-s').textContent='Aguardando...';
   }
@@ -1218,6 +1211,8 @@ async function moverJogador(passos){
   j.log.push({msg:`🎲 ${jg.avatar} ${jg.nome} tirou ${passos}`,tipo:'lv'});
   await fbSet('jogos/'+codigoSala,j);
   jogo=j; atualizarUI();
+  // Só o jogador da vez processa a casa — direto, sem depender do listener
+  setTimeout(()=>processarCasa(JSON.parse(JSON.stringify(jogo))),600);
 }
 
 async function processarCasa(j){
@@ -1719,9 +1714,10 @@ function limparSessao(){
 function setupPresence(){
   if(MODO_DEMO||!db)return;
   const base='jogos/'+codigoSala+'/jogadores/'+meuId;
-  db.ref(base+'/online').set(true);
+  // Usar transaction para não sobrescrever o jogo inteiro
   db.ref(base+'/online').onDisconnect().set(false);
   db.ref(base+'/desconectadoEm').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+  db.ref(base+'/online').set(true);
   salvarSessao();
 }
 
