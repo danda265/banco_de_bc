@@ -1883,7 +1883,7 @@ function temMonopolio(playerId, grupo, j){
   return GRUPOS[grupo].every(id=>props.includes(id));
 }
 
-function abrirProp(casa,j,fromSidebar=false){
+function abrirProp(casa,j){
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
   const prop=j.props?.[casa.id]||j.props?.[String(casa.id)];
   if(!prop){logErro(`abrirProp: prop id=${casa.id} não encontrada. Keys presentes: ${Object.keys(j.props||{}).join(',')}`);setTimeout(proxTurno,500);return;}
@@ -1943,8 +1943,8 @@ function abrirProp(casa,j,fromSidebar=false){
       narrativa:`${casa.nome} é sua! ${isMono?'⭐ MONOPÓLIO — aluguel dobrado! Agora pode construir!':'Complete o grupo '+grupoL(casa.grupo)+' para dobrar o aluguel e construir.'}`,
       cor:casa.cor,
       devHtml,
-      btnTxt:fromSidebar?'✅ Fechar':'✅ Avançar turno',
-      btnFn:fromSidebar?null:proxTurno
+      btnTxt:'✅ Avançar turno',
+      btnFn:proxTurno
     });
 
   } else {
@@ -2310,14 +2310,6 @@ function fecharSb(){
   document.getElementById('sidebar').classList.remove('aberta');
   document.getElementById('sb-overlay').classList.remove('vis');
 }
-// Abre card de evolução do imóvel a partir da aba Imóveis (sem avançar turno)
-function verMeuImovel(id){
-  if(!ehMinhaVez()){return;}
-  const casa=CASAS.find(c=>c.id===id);
-  if(!casa)return;
-  fecharSb();
-  setTimeout(()=>abrirProp(casa,JSON.parse(JSON.stringify(jogo)),true),150);
-}
 
 function renderAba(t){
   const body=document.getElementById('sb-body');
@@ -2396,9 +2388,8 @@ function renderAba(t){
             <div class="im-nome">${casa.emoji} ${casa.nome}${isMono?' <span style="color:var(--amarelo)">⭐</span>':''}</div>
             <div class="im-d">${grupoL(casa.grupo)} • ${devLabel(prop)} • R$${aluguelAtual}/vis.</div>
           </div>
-          <div style="text-align:right;display:flex;flex-direction:column;gap:3px;align-items:flex-end">
+          <div style="text-align:right">
             <div class="im-v" style="color:${casa.cor}">R$${prop.preco}</div>
-            ${minhaVez?`<button class="im-sell" style="background:var(--verde);color:#07192e" onclick="verMeuImovel(${casa.id})">🏗️ Desenvolver</button>`:''}
             ${minhaVez?`<button class="im-sell" onclick="venderProp(${casa.id})">🏚️ R$${Math.floor(prop.preco*.5)}</button>`:''}
           </div>
         </div>`;
