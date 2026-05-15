@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🌊 Banco de Balneário! — Multiplayer Online</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -24,15 +22,22 @@
 }
 body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min-height:100vh;overflow-x:hidden}
 
-/* ====== ANIMAÇÃO DADO 3D ====== */
+/* ====== DADO 3D ====== */
 .dado-cena{width:70px;height:70px;perspective:300px;flex-shrink:0}
-.dado-cubo{width:70px;height:70px;position:relative;transform-style:preserve-3d;
-  transform:rotateX(-20deg) rotateY(30deg)}
-.dado-face{position:absolute;width:70px;height:70px;
+.dado-cubo{
+  width:70px;height:70px;position:relative;
+  transform-style:preserve-3d;
+  transform:rotateX(-20deg) rotateY(30deg);
+  transition:transform 0.15s ease;
+}
+.dado-face{
+  position:absolute;width:70px;height:70px;
   background:linear-gradient(145deg,#ffffff,#d8e8f8);
   border:3px solid #b0c8e0;border-radius:14px;
   display:flex;align-items:center;justify-content:center;font-size:2.2rem;
-  box-shadow:inset 0 2px 6px rgba(255,255,255,.9),inset 0 -2px 4px rgba(0,0,0,.1)}
+  box-shadow:inset 0 2px 6px rgba(255,255,255,.9),inset 0 -2px 4px rgba(0,0,0,.1);
+  backface-visibility:hidden;
+}
 .dado-face.f1{transform:rotateY(  0deg) translateZ(35px)}
 .dado-face.f2{transform:rotateY(180deg) translateZ(35px)}
 .dado-face.f3{transform:rotateY( 90deg) translateZ(35px)}
@@ -40,21 +45,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 .dado-face.f5{transform:rotateX( 90deg) translateZ(35px)}
 .dado-face.f6{transform:rotateX(-90deg) translateZ(35px)}
 
-@keyframes spinDado{
-  0%  {transform:rotateX(0deg)   rotateY(0deg)   rotateZ(0deg)   scale3d(1,1,1)}
-  15% {transform:rotateX(120deg) rotateY(80deg)  rotateZ(60deg)  scale3d(1.3,1.3,1.3)}
-  30% {transform:rotateX(240deg) rotateY(200deg) rotateZ(90deg)  scale3d(1.1,1.1,1.1)}
-  45% {transform:rotateX(360deg) rotateY(310deg) rotateZ(180deg) scale3d(1.25,1.25,1.25)}
-  60% {transform:rotateX(440deg) rotateY(420deg) rotateZ(240deg) scale3d(1.05,1.05,1.05)}
-  75% {transform:rotateX(500deg) rotateY(490deg) rotateZ(270deg) scale3d(1.15,1.15,1.15)}
-  90% {transform:rotateX(var(--fx)) rotateY(var(--fy)) rotateZ(10deg) scale3d(1.02,1.02,1.02)}
-  100%{transform:rotateX(var(--fx)) rotateY(var(--fy)) rotateZ(0deg)  scale3d(1,1,1)}
-}
-.dado-cubo.girando{animation:spinDado 1.2s cubic-bezier(.17,.67,.35,1.1) forwards}
-
-/* Posições finais do dado por face */
-/* face 1 = frente */   /* face 2 = trás */  /* face 3 = direita */
-/* face 4 = esquerda */ /* face 5 = topo */  /* face 6 = base */
+/* Animação em JS puro — sem @keyframes conflitando */
+@keyframes pulseGlow2{0%,100%{box-shadow:0 0 0 0 #00E5A044}50%{box-shadow:0 0 14px 5px #00E5A022}}
 
 /* ====== SCREENS ====== */
 .screen{display:none;animation:fadeUp .3s ease}
@@ -145,8 +137,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 .sb-body{flex:1;overflow-y:auto;padding:.7rem}
 .sb-body::-webkit-scrollbar{width:3px}
 .sb-body::-webkit-scrollbar-thumb{background:var(--borda);border-radius:2px}
-
-/* cards jogadores */
 .pjc{background:var(--card2);border:1.5px solid var(--borda);border-radius:10px;
   padding:.65rem;margin-bottom:.45rem;transition:border-color .2s,box-shadow .2s}
 .pjc.vez{border-color:var(--verde);box-shadow:0 0 0 2px #00E5A018}
@@ -161,8 +151,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   padding:.1rem .35rem;border-radius:4px;font-weight:800;margin-left:auto}
 .pjc-ps{display:flex;flex-wrap:wrap;gap:.18rem;margin-top:.35rem}
 .pbadge{font-size:.55rem;padding:.08rem .3rem;border-radius:3px;font-weight:700;color:#fff}
-
-/* banco */
 .banco-bloco{margin-bottom:.9rem}
 .banco-h{font-size:.68rem;font-weight:800;color:var(--cinza2);text-transform:uppercase;
   letter-spacing:1.5px;margin-bottom:.45rem}
@@ -176,20 +164,15 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 .sbtn{width:100%;padding:.5rem;border:none;border-radius:8px;font-weight:800;
   font-size:.84rem;cursor:pointer;font-family:'Nunito',sans-serif;margin-bottom:.3rem}
 .sbtn-v{background:var(--verde);color:var(--bg)}
-.sbtn-a{background:var(--azul);color:#fff}
 .ext-row{display:flex;justify-content:space-between;align-items:center;
   padding:.32rem 0;border-bottom:1px solid var(--borda);font-size:.74rem}
 .ext-row:last-child{border:none}
 .ep{color:var(--verde);font-weight:700}.en{color:var(--vermelho);font-weight:700}
-
-/* imóveis */
 .im-row{background:var(--card2);border-radius:8px;padding:.5rem .65rem;
   margin-bottom:.35rem;display:flex;align-items:center;gap:.5rem;border-left:3px solid}
 .im-nome{font-weight:700;font-size:.78rem;color:var(--branco);flex:1}
 .im-d{font-size:.65rem;color:var(--cinza2)}
 .im-v{font-size:.7rem;font-weight:700}
-
-/* log */
 .log-row{font-size:.7rem;padding:.32rem .45rem;border-radius:6px;
   margin-bottom:.28rem;background:var(--card2);line-height:1.4;border-left:2px solid var(--borda)}
 .log-row.le{border-left-color:var(--verde)}
@@ -204,9 +187,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 .pill-sala{background:var(--azul-bg);border:1px solid var(--azul);color:var(--azul);cursor:pointer}
 .pill-turno{background:var(--amarelo-bg);border:1px solid var(--amarelo);color:var(--amarelo)}
 .pill-vez{background:linear-gradient(90deg,var(--verde),var(--azul2));color:#07192e;
-  animation:pulseGlow 1.4s infinite}
-@keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 #00E5A044}50%{box-shadow:0 0 14px 5px #00E5A022}}
+  animation:pulseGlow2 1.4s infinite}
 .pill-outro{color:var(--cinza2);font-size:.72rem;margin-left:auto}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 #00E5A044}50%{box-shadow:0 0 14px 5px #00E5A022}}
 
 /* TABULEIRO */
 .board-wrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;
@@ -243,9 +226,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 .mbox::-webkit-scrollbar-thumb{background:var(--borda);border-radius:2px}
 .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem}
 .mh h3{font-family:'Fredoka One',cursive;font-size:1.25rem;color:var(--branco)}
-.mc{background:var(--card2);border:1px solid var(--borda);width:28px;height:28px;
+.mc{background:var(--card2);border:none;width:28px;height:28px;
   border-radius:50%;color:var(--cinza2);font-size:.9rem;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;border:none}
+  display:flex;align-items:center;justify-content:center}
 .pcard{border-radius:14px;padding:1.1rem;text-align:center;margin-bottom:.9rem;border:2px solid}
 .pcard-em{font-size:2.8rem;margin-bottom:.3rem}
 .pcard-nm{font-family:'Fredoka One',cursive;font-size:1.2rem}
@@ -316,7 +299,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   #svg-board{width:100%;min-width:0;height:auto}
 }
 
-/* SPINNER CARREGANDO */
+/* SPINNER */
 .loading-over{position:fixed;inset:0;background:var(--bg);z-index:999;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
 .spinner{width:50px;height:50px;border:4px solid var(--borda);border-top-color:var(--azul);
@@ -327,14 +310,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 </head>
 <body>
 
-<!-- LOADING -->
 <div class="loading-over" id="loading">
   <div style="font-size:3rem">🌊</div>
   <div class="spinner"></div>
   <div class="loading-txt">Conectando ao Firebase...</div>
-  <div style="font-size:.78rem;color:var(--cinza2);max-width:280px;text-align:center">
-    Se demorar mais de 10s, verifique sua conexão com a internet.
-  </div>
 </div>
 
 <div id="app">
@@ -424,7 +403,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
           <div class="dado-face f6">⚁</div>
         </div>
       </div>
-      <div class="dado-val-show" id="dado-num" style="font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--amarelo);min-width:32px;text-align:center">—</div>
+      <div id="dado-num" style="font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--amarelo);min-width:32px;text-align:center">—</div>
       <div class="acao-txt">
         <div class="acao-t" id="acao-t">Aguardando...</div>
         <div class="acao-s" id="acao-s">—</div>
@@ -506,46 +485,26 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   <div style="font-size:2rem;margin-bottom:.4rem">🔗</div>
   <div style="font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--branco);margin-bottom:.4rem">Código da Sala</div>
   <div style="font-family:'Fredoka One',cursive;font-size:3.5rem;color:var(--amarelo);letter-spacing:12px;margin-bottom:.4rem" id="mod-cod-val">----</div>
-  <p style="font-size:.8rem;color:var(--cinza2);margin-bottom:.9rem">Cada amigo entra em banco-balneario.html e digita este código!</p>
+  <p style="font-size:.8rem;color:var(--cinza2);margin-bottom:.9rem">Cada amigo entra e digita este código!</p>
   <button class="bm bm-c" onclick="copiar();fm('mod-cod')">📋 Copiar Código</button>
   <button class="bm bm-p" onclick="fm('mod-cod')">Fechar</button>
 </div></div>
 
 <script>
 // =====================================================
-// CONFIGURAÇÃO FIREBASE
+// FIREBASE CONFIG
 // =====================================================
-// INSTRUÇÕES: Crie um projeto GRATUITO em https://console.firebase.google.com
-// 1. Clique "Adicionar projeto" → nome: banco-balneario
-// 2. Vá em "Realtime Database" → "Criar banco de dados" → "Modo de teste"
-// 3. Clique na engrenagem ⚙️ → "Configurações do projeto" → "Seus apps" → "Web"
-// 4. Copie as configurações e substitua abaixo:
-
 const FB_CONFIG = {
   apiKey: "AIzaSyBR-LXbkYPH_X6UyeO2KpQRzf7g5pLgug0",
-
   authDomain: "jogo-monetario.firebaseapp.com",
-
   databaseURL: "https://jogo-monetario-default-rtdb.firebaseio.com",
-
   projectId: "jogo-monetario",
-
   storageBucket: "jogo-monetario.firebasestorage.app",
-
   messagingSenderId: "743932708760",
-
-  appId: "1:743932708760:web:5549060ad9319618470ded",
-
-  measurementId: "G-H26CPCGJ6B"
-
+  appId: "1:743932708760:web:5549060ad9319618470ded"
 };
 
-// Initialize Firebase
-
-// MODO DEMO (sem Firebase): joga no mesmo navegador, abas diferentes
-// Se não configurar o Firebase acima, o jogo roda em modo demo local.
 let MODO_DEMO = false;
-
 let db = null;
 let codigoSala = null;
 let meuId = null;
@@ -553,67 +512,118 @@ let meuAv = 0;
 let jogo = null;
 let aluguelPend = null;
 let quizAtivo = null;
-let salaRef = null;
-let jogoRef = null;
 
-// =====================================================
-// INIT FIREBASE
-// =====================================================
 try {
-  if(FB_CONFIG.apiKey && FB_CONFIG.apiKey !== "COLE_SUA_API_KEY_AQUI"){
-    firebase.initializeApp(FB_CONFIG);
-    db = firebase.database();
-    document.getElementById('loading').style.display = 'none';
-    irTela('tela-lobby');
-  } else {
-    throw new Error("Firebase não configurado");
-  }
+  firebase.initializeApp(FB_CONFIG);
+  db = firebase.database();
+  document.getElementById('loading').style.display = 'none';
+  irTela('tela-lobby');
 } catch(e) {
-  console.warn("Firebase não configurado — modo demo local", e);
+  console.warn("Firebase erro — modo demo", e);
   MODO_DEMO = true;
   document.getElementById('loading').innerHTML = `
     <div style="font-size:2.5rem;margin-bottom:.5rem">🌊</div>
     <div style="font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--amarelo);margin-bottom:.5rem">Modo Demo Local</div>
     <div style="font-size:.82rem;color:var(--cinza2);max-width:320px;text-align:center;margin-bottom:1rem;line-height:1.6">
-      Firebase não configurado. O jogo roda localmente (mesma rede).<br>
-      Para jogo online global, configure o Firebase nas instruções dentro do HTML.
+      Firebase não configurado. Jogo roda localmente.<br>Para online global, configure o Firebase no HTML.
     </div>
     <button onclick="document.getElementById('loading').style.display='none';irTela('tela-lobby')"
       style="background:var(--verde);color:var(--bg);border:none;padding:.7rem 1.5rem;
       border-radius:10px;font-family:'Fredoka One',cursive;font-size:1rem;cursor:pointer">
-      🎮 Jogar em Demo Local
+      🎮 Jogar Demo Local
     </button>`;
 }
 
 // =====================================================
-// DADOS DO JOGO
+// TABULEIRO — 40 CASAS em volta do board 700x700
+// Bordas: baixo (y=660), esquerda (x=40), topo (y=40), direita (x=660)
+// Canto inferior-direito = casa 0 (INÍCIO), sentido anti-horário
 // =====================================================
-const CASAS = [
-  {id:0,tipo:'inicio',nome:'INÍCIO',emoji:'🏁',cor:'#00E5A0',x:618,y:618},
-  {id:1,tipo:'propriedade',nome:'Praia Central',emoji:'🏖️',preco:300,aluguel:40,cor:'#3DB8FF',grupo:'praias',x:508,y:618},
-  {id:2,tipo:'propriedade',nome:'Rua do Comércio',emoji:'🛍️',preco:220,aluguel:28,cor:'#FFD23F',grupo:'comercio',x:398,y:618},
-  {id:3,tipo:'carta-sorte',nome:'Sorte ou Azar',emoji:'🃏',cor:'#B08FFF',x:288,y:618},
-  {id:4,tipo:'propriedade',nome:'Parque Figueira',emoji:'🌳',preco:250,aluguel:32,cor:'#00E5A0',grupo:'parques',x:178,y:618},
-  {id:5,tipo:'imposto',nome:'Taxa Municipal',emoji:'🏛️',cor:'#FF4757',valor:100,x:68,y:618},
-  {id:6,tipo:'propriedade',nome:'Beto Carreiro',emoji:'🎡',preco:500,aluguel:80,cor:'#FF4757',grupo:'turismo',x:50,y:508},
-  {id:7,tipo:'carta-sorte',nome:'Sorte ou Azar',emoji:'🃏',cor:'#B08FFF',x:50,y:418},
-  {id:8,tipo:'propriedade',nome:'Shopping BC',emoji:'🏬',preco:400,aluguel:55,cor:'#FFD23F',grupo:'comercio',x:50,y:328},
-  {id:9,tipo:'quiz',nome:'Quiz Financeiro',emoji:'🎓',cor:'#00E5A0',x:50,y:238},
-  {id:10,tipo:'propriedade',nome:'Aeroporto de BC',emoji:'✈️',preco:600,aluguel:90,cor:'#3DB8FF',grupo:'transporte',x:50,y:148},
-  {id:11,tipo:'imposto',nome:'IPTU',emoji:'📄',cor:'#FF4757',valor:80,x:68,y:58},
-  {id:12,tipo:'descanso',nome:'Férias em BC!',emoji:'😎',cor:'#FFD23F',x:178,y:50},
-  {id:13,tipo:'propriedade',nome:'Hotel Costa Norte',emoji:'🏨',preco:350,aluguel:48,cor:'#B08FFF',grupo:'turismo',x:288,y:50},
-  {id:14,tipo:'quiz',nome:'Quiz Financeiro',emoji:'🎓',cor:'#00E5A0',x:398,y:50},
-  {id:15,tipo:'propriedade',nome:'Píer de BC',emoji:'⛵',preco:280,aluguel:36,cor:'#3DB8FF',grupo:'praias',x:508,y:50},
-  {id:16,tipo:'carta-sorte',nome:'Sorte ou Azar',emoji:'🃏',cor:'#B08FFF',x:618,y:68},
-  {id:17,tipo:'propriedade',nome:'Orla Beira-Mar',emoji:'🌊',preco:450,aluguel:65,cor:'#3DB8FF',grupo:'praias',x:650,y:178},
-  {id:18,tipo:'propriedade',nome:'Mercado Municipal',emoji:'🛒',preco:200,aluguel:25,cor:'#FFD23F',grupo:'comercio',x:650,y:278},
-  {id:19,tipo:'quiz',nome:'Quiz Financeiro',emoji:'🎓',cor:'#00E5A0',x:650,y:368},
-  {id:20,tipo:'propriedade',nome:'Mirante do Morro',emoji:'🗻',preco:320,aluguel:44,cor:'#00E5A0',grupo:'parques',x:650,y:458},
-  {id:21,tipo:'imposto',nome:'Multa de Trânsito',emoji:'🚦',cor:'#FF4757',valor:60,x:650,y:548},
-  {id:22,tipo:'propriedade',nome:'Aqua Park',emoji:'💦',preco:380,aluguel:52,cor:'#FF4757',grupo:'turismo',x:618,y:638},
-  {id:23,tipo:'carta-sorte',nome:'Sorte ou Azar',emoji:'🃏',cor:'#B08FFF',x:508,y:660},
-];
+(function gerarCasas(){
+  // Geometria do tabuleiro
+  // Canto inf-dir: (660,660)  Canto inf-esq: (40,660)  Canto sup-esq: (40,40)  Canto sup-dir: (660,40)
+  // 40 casas no perímetro: 10 por lado (incluindo cantos)
+  // Sentido: começa no canto inf-dir e vai para esquerda (borda inferior), sobe (borda esq),
+  //          vai para direita (borda sup), desce (borda dir)
+
+  const STEP = 62; // espaçamento entre casas
+  const Y_BOT = 660, Y_TOP = 40, X_LEFT = 40, X_RIGHT = 660;
+
+  // Definições das casas (sem coordenadas, serão calculadas)
+  const defs = [
+    // Casa 0 = INÍCIO (canto inf-dir)
+    {tipo:'inicio',   nome:'INÍCIO',           emoji:'🏁', cor:'#00E5A0'},
+    // Borda inferior — da direita para esquerda (casas 1-9)
+    {tipo:'propriedade', nome:'Praia Central',      emoji:'🏖️', preco:300, aluguel:40,  cor:'#3DB8FF', grupo:'praias'},
+    {tipo:'carta-sorte', nome:'Sorte ou Azar',       emoji:'🃏', cor:'#B08FFF'},
+    {tipo:'propriedade', nome:'Rua do Comércio',     emoji:'🛍️', preco:220, aluguel:28,  cor:'#FFD23F', grupo:'comercio'},
+    {tipo:'imposto',     nome:'Taxa Municipal',      emoji:'🏛️', cor:'#FF4757', valor:100},
+    {tipo:'propriedade', nome:'Parque Figueira',     emoji:'🌳', preco:250, aluguel:32,  cor:'#00E5A0', grupo:'parques'},
+    {tipo:'carta-sorte', nome:'Sorte ou Azar',       emoji:'🃏', cor:'#B08FFF'},
+    {tipo:'propriedade', nome:'Beto Carreiro',       emoji:'🎡', preco:500, aluguel:80,  cor:'#FF4757', grupo:'turismo'},
+    {tipo:'quiz',        nome:'Quiz Financeiro',     emoji:'🎓', cor:'#00E5A0'},
+    {tipo:'propriedade', nome:'Shopping BC',         emoji:'🏬', preco:400, aluguel:55,  cor:'#FFD23F', grupo:'comercio'},
+    // Casa 10 = canto inf-esq (descanso)
+    {tipo:'descanso',    nome:'Férias em BC!',       emoji:'😎', cor:'#FFD23F'},
+    // Borda esquerda — de baixo para cima (casas 11-19)
+    {tipo:'propriedade', nome:'Aeroporto de BC',     emoji:'✈️', preco:600, aluguel:90,  cor:'#3DB8FF', grupo:'transporte'},
+    {tipo:'carta-sorte', nome:'Sorte ou Azar',       emoji:'🃏', cor:'#B08FFF'},
+    {tipo:'propriedade', nome:'Hotel Costa Norte',   emoji:'🏨', preco:350, aluguel:48,  cor:'#B08FFF', grupo:'turismo'},
+    {tipo:'imposto',     nome:'IPTU',                emoji:'📄', cor:'#FF4757', valor:80},
+    {tipo:'propriedade', nome:'Orla Beira-Mar',      emoji:'🌊', preco:450, aluguel:65,  cor:'#3DB8FF', grupo:'praias'},
+    {tipo:'quiz',        nome:'Quiz Financeiro',     emoji:'🎓', cor:'#00E5A0'},
+    {tipo:'propriedade', nome:'Mirante do Morro',    emoji:'🗻', preco:320, aluguel:44,  cor:'#00E5A0', grupo:'parques'},
+    {tipo:'carta-sorte', nome:'Sorte ou Azar',       emoji:'🃏', cor:'#B08FFF'},
+    {tipo:'propriedade', nome:'Aqua Park',           emoji:'💦', preco:380, aluguel:52,  cor:'#FF4757', grupo:'turismo'},
+    // Casa 20 = canto sup-esq (imposto)
+    {tipo:'imposto',     nome:'Multa de Trânsito',   emoji:'🚦', cor:'#FF4757', valor:60},
+    // Borda superior — da esquerda para direita (casas 21-29)
+    {tipo:'propriedade', nome:'Píer de BC',          emoji:'⛵', preco:280, aluguel:36,  cor:'#3DB8FF', grupo:'praias'},
+    {tipo:'quiz',        nome:'Quiz Financeiro',     emoji:'🎓', cor:'#00E5A0'},
+    {tipo:'propriedade', nome:'Mercado Municipal',   emoji:'🛒', preco:200, aluguel:25,  cor:'#FFD23F', grupo:'comercio'},
+    {tipo:'carta-sorte', nome:'Sorte ou Azar',       emoji:'🃏', cor:'#B08FFF'},
+    {tipo:'propriedade', nome:'Praia Brava',         emoji:'🌅', preco:260, aluguel:34,  cor:'#3DB8FF', grupo:'praias'},
+    {tipo:'imposto',     nome:'Taxa de Turismo',     emoji:'🎫', cor:'#FF4757', valor:70},
+    {tipo:'propriedade', nome:'Centro de Eventos',   emoji:'🎪', preco:420, aluguel:58,  cor:'#B08FFF', grupo:'turismo'},
+    {tipo:'quiz',        nome:'Quiz Financeiro',     emoji:'🎓', cor:'#00E5A0'},
+    {tipo:'propriedade', nome:'Estação de Trem',     emoji:'🚂', preco:340, aluguel:46,  cor:'#FFD23F', grupo:'transporte'},
+    // Casa 30 = canto sup-dir (carta)
+    {tipo:'carta-sorte', nome:'Sorte ou Azar',       emoji:'🃏', cor:'#B08FFF'},
+    // Borda direita — de cima para baixo (casas 31-39)
+    {tipo:'propriedade', nome:'Farol de BC',         emoji:'🗼', preco:480, aluguel:68,  cor:'#00E5A0', grupo:'turismo'},
+    {tipo:'quiz',        nome:'Quiz Financeiro',     emoji:'🎓', cor:'#00E5A0'},
+    {tipo:'propriedade', nome:'Restaurante Orla',    emoji:'🍽️', preco:290, aluguel:38,  cor:'#FFD23F', grupo:'comercio'},
+    {tipo:'imposto',     nome:'ISS Serviços',        emoji:'📋', cor:'#FF4757', valor:90},
+    {tipo:'propriedade', nome:'Marina de BC',        emoji:'⚓', preco:360, aluguel:50,  cor:'#3DB8FF', grupo:'praias'},
+    {tipo:'carta-sorte', nome:'Sorte ou Azar',       emoji:'🃏', cor:'#B08FFF'},
+    {tipo:'propriedade', nome:'Teleférico',          emoji:'🚡', preco:550, aluguel:75,  cor:'#B08FFF', grupo:'transporte'},
+    {tipo:'quiz',        nome:'Quiz Financeiro',     emoji:'🎓', cor:'#00E5A0'},
+    {tipo:'propriedade', nome:'Parque das Nações',   emoji:'🏟️', preco:310, aluguel:42,  cor:'#00E5A0', grupo:'parques'},
+  ];
+
+  // Calcular coordenadas para 40 casas (índices 0-39)
+  // Canto inf-dir = (660,660) = casa 0
+  // Borda inferior: de x=660 até x=40, y fixo = 660 → casas 0-10
+  // Borda esquerda: de y=660 até y=40, x fixo = 40 → casas 10-20
+  // Borda superior: de x=40 até x=660, y fixo = 40 → casas 20-30
+  // Borda direita:  de y=40 até y=660, x fixo = 660 → casas 30-40 (40=0)
+
+  const pts = [];
+  const n = 40;
+  const side = 10; // casas por lado (incluindo cantos)
+  for(let i=0;i<n;i++){
+    const seg = Math.floor(i/side);
+    const t = (i % side) / side;
+    let x,y;
+    if(seg===0){      x=660-t*(660-40); y=660; }       // baixo: dir→esq
+    else if(seg===1){ x=40;             y=660-t*(660-40); } // esq: baixo→cima
+    else if(seg===2){ x=40+t*(660-40); y=40; }        // topo: esq→dir
+    else {            x=660;            y=40+t*(660-40); }  // dir: cima→baixo
+    pts.push({x:Math.round(x), y:Math.round(y)});
+  }
+
+  window.CASAS = defs.map((d,i)=>({...d, id:i, x:pts[i].x, y:pts[i].y}));
+})();
 
 const CARTAS = [
   {titulo:'Turista da Semana!',desc:'Você foi eleito o turista mais simpático de BC!',emoji:'🌟',tipo:'ganhar',valor:150},
@@ -649,7 +659,7 @@ const CORES = ['#FF4757','#3DB8FF','#00E5A0','#FFD23F','#B08FFF','#FF9F43'];
 const AVATARES = ['🦁','🐬','🦋','🦅','🐠','🐧','🦊','🐸'];
 
 // =====================================================
-// INICIALIZAÇÃO AVATAR
+// AVATAR INIT
 // =====================================================
 (function(){
   const row = document.getElementById('av-row');
@@ -674,50 +684,49 @@ function irTela(id){
 }
 
 // =====================================================
-// FIREBASE HELPERS / DEMO HELPERS
+// FIREBASE HELPERS / DEMO
 // =====================================================
-const _demo = {}; // armazenamento local para modo demo
+const _demo = {};
 
-function fbSet(path, val){ 
+function fbSet(path, val){
   if(MODO_DEMO){ setPath(_demo, path, val); return Promise.resolve(); }
-  return db.ref(path).set(val); 
+  return db.ref(path).set(val);
 }
-function fbUpdate(path, val){ 
+function fbUpdate(path, val){
   if(MODO_DEMO){ setPath(_demo, path, val); return Promise.resolve(); }
-  return db.ref(path).update(val); 
+  return db.ref(path).update(val);
 }
-function fbGet(path){ 
+function fbGet(path){
   if(MODO_DEMO){ return Promise.resolve({val:()=>getPath(_demo,path)}); }
-  return db.ref(path).get(); 
+  return db.ref(path).get();
 }
-function fbOn(path, cb){ 
+function fbOn(path, cb){
   if(MODO_DEMO){
-    // polling simples para demo
-    let last = null;
-    const iv = setInterval(()=>{
-      const v = getPath(_demo,path);
-      const s = JSON.stringify(v);
-      if(s!==last){ last=s; cb({val:()=>v}); }
+    let last=null;
+    const iv=setInterval(()=>{
+      const v=getPath(_demo,path);
+      const s=JSON.stringify(v);
+      if(s!==last){last=s; cb({val:()=>v});}
     },800);
     return ()=>clearInterval(iv);
   }
-  const ref = db.ref(path);
-  ref.on('value', cb);
-  return ()=>ref.off('value', cb);
+  const ref=db.ref(path);
+  ref.on('value',cb);
+  return ()=>ref.off('value',cb);
 }
 
-function setPath(obj, path, val){
-  const parts = path.replace(/^\//, '').split('/');
-  let cur = obj;
+function setPath(obj,path,val){
+  const parts=path.replace(/^\//,'').split('/');
+  let cur=obj;
   parts.forEach((p,i)=>{
-    if(i===parts.length-1){ cur[p]=val; }
-    else { if(!cur[p]||typeof cur[p]!=='object') cur[p]={}; cur=cur[p]; }
+    if(i===parts.length-1){cur[p]=val;}
+    else{if(!cur[p]||typeof cur[p]!=='object')cur[p]={};cur=cur[p];}
   });
 }
-function getPath(obj, path){
-  const parts = path.replace(/^\//, '').split('/');
-  let cur = obj;
-  for(const p of parts){ if(!cur||typeof cur!=='object') return null; cur=cur[p]; }
+function getPath(obj,path){
+  const parts=path.replace(/^\//,'').split('/');
+  let cur=obj;
+  for(const p of parts){if(!cur||typeof cur!=='object')return null;cur=cur[p];}
   return cur;
 }
 
@@ -728,51 +737,49 @@ function gerarCodigo(){ return String(Math.floor(1000+Math.random()*9000)); }
 function hoje(){ return new Date().toLocaleDateString('pt-BR'); }
 
 async function criarSala(){
-  const nome = document.getElementById('l-nome').value.trim()||'Professor';
-  meuId = 'host_'+Date.now();
-  codigoSala = gerarCodigo();
-  const sala = {
-    codigo: codigoSala, iniciado: false, criado: Date.now(),
-    jogadores:{
-      [meuId]:{id:meuId,nome:nome,avatar:AVATARES[meuAv],cor:CORES[0],slot:0}
-    }
+  const nome=document.getElementById('l-nome').value.trim()||'Professor';
+  meuId='host_'+Date.now();
+  codigoSala=gerarCodigo();
+  const sala={
+    codigo:codigoSala, iniciado:false, criado:Date.now(),
+    jogadores:{[meuId]:{id:meuId,nome:nome,avatar:AVATARES[meuAv],cor:CORES[0],slot:0}}
   };
-  await fbSet('salas/'+codigoSala, sala);
-  document.getElementById('cod-show').textContent = codigoSala;
-  document.getElementById('mod-cod-val').textContent = codigoSala;
+  await fbSet('salas/'+codigoSala,sala);
+  document.getElementById('cod-show').textContent=codigoSala;
+  document.getElementById('mod-cod-val').textContent=codigoSala;
   irTela('tela-sala');
   escutarSala();
 }
 
 async function entrarSala(){
-  const nome = document.getElementById('l-nome').value.trim()||'Aluno';
-  const cod = document.getElementById('l-codigo').value.trim();
-  if(!cod||cod.length!==4){ toast('⚠️ Digite o código de 4 dígitos!'); return; }
-  const snap = await fbGet('salas/'+cod);
-  const sala = snap.val();
-  if(!sala){ toast('❌ Sala não encontrada! Confira o código.'); return; }
-  if(sala.iniciado){ toast('⚠️ Esse jogo já começou!'); return; }
-  const jogadores = sala.jogadores || {};
-  const qtd = Object.keys(jogadores).length;
-  if(qtd>=6){ toast('⚠️ Sala cheia (máx. 6 jogadores)!'); return; }
-  meuId = 'p'+Date.now();
-  codigoSala = cod;
+  const nome=document.getElementById('l-nome').value.trim()||'Aluno';
+  const cod=document.getElementById('l-codigo').value.trim();
+  if(!cod||cod.length!==4){toast('⚠️ Digite o código de 4 dígitos!');return;}
+  const snap=await fbGet('salas/'+cod);
+  const sala=snap.val();
+  if(!sala){toast('❌ Sala não encontrada!');return;}
+  if(sala.iniciado){toast('⚠️ Esse jogo já começou!');return;}
+  const jogadores=sala.jogadores||{};
+  const qtd=Object.keys(jogadores).length;
+  if(qtd>=6){toast('⚠️ Sala cheia!');return;}
+  meuId='p'+Date.now();
+  codigoSala=cod;
   await fbUpdate('salas/'+cod+'/jogadores/'+meuId,
     {id:meuId,nome:nome,avatar:AVATARES[meuAv],cor:CORES[qtd%CORES.length],slot:qtd});
-  document.getElementById('cod-show').textContent = cod;
-  document.getElementById('mod-cod-val').textContent = cod;
+  document.getElementById('cod-show').textContent=cod;
+  document.getElementById('mod-cod-val').textContent=cod;
   irTela('tela-sala');
   escutarSala();
 }
 
-let escutarSalaOff = null;
+let escutarSalaOff=null;
 function escutarSala(){
-  if(escutarSalaOff) escutarSalaOff();
-  escutarSalaOff = fbOn('salas/'+codigoSala, snap=>{
-    const sala = snap.val();
-    if(!sala) return;
+  if(escutarSalaOff)escutarSalaOff();
+  escutarSalaOff=fbOn('salas/'+codigoSala,snap=>{
+    const sala=snap.val();
+    if(!sala)return;
     if(sala.iniciado){
-      if(escutarSalaOff){ escutarSalaOff(); escutarSalaOff=null; }
+      if(escutarSalaOff){escutarSalaOff();escutarSalaOff=null;}
       escutarJogo();
       irTela('tela-jogo');
       return;
@@ -782,11 +789,11 @@ function escutarSala(){
 }
 
 function renderSlots(sala){
-  const jogs = Object.values(sala.jogadores||{}).sort((a,b)=>a.slot-b.slot);
-  const mine = jogs.find(j=>j.id===meuId);
-  const isHost = mine?.slot===0;
-  const n = jogs.length;
-  let html = jogs.map(jg=>`
+  const jogs=Object.values(sala.jogadores||{}).sort((a,b)=>a.slot-b.slot);
+  const mine=jogs.find(j=>j.id===meuId);
+  const isHost=mine?.slot===0;
+  const n=jogs.length;
+  let html=jogs.map(jg=>`
     <div class="slot ok" style="border-color:${jg.cor}55">
       <div class="slot-av">${jg.avatar}</div>
       <div class="slot-nm" style="color:${jg.cor}">${jg.nome}</div>
@@ -794,52 +801,53 @@ function renderSlots(sala){
         ${jg.slot===0?'👑 Host':'Jogador '+(jg.slot+1)}
       </div>
     </div>`).join('');
-  if(n<6) html+=`<div class="slot"><div class="slot-vazio">⏳ Aguardando...</div></div>`;
-  document.getElementById('slots').innerHTML = html;
-  const st = document.getElementById('sala-status');
-  const btn = document.getElementById('btn-ini');
+  if(n<6)html+=`<div class="slot"><div class="slot-vazio">⏳ Aguardando...</div></div>`;
+  document.getElementById('slots').innerHTML=html;
+  const st=document.getElementById('sala-status');
+  const btn=document.getElementById('btn-ini');
   if(n>=2){
-    st.textContent = `${n} jogador(es) na sala.${isHost?' Você pode iniciar!':' Aguardando o host iniciar.'}`;
-    btn.disabled = !isHost;
-    btn.textContent = isHost ? `🚀 Iniciar Jogo com ${n} jogadores!` : '⏳ Aguardando o host iniciar...';
+    st.textContent=`${n} jogador(es) na sala.${isHost?' Você pode iniciar!':' Aguardando o host iniciar.'}`;
+    btn.disabled=!isHost;
+    btn.textContent=isHost?`🚀 Iniciar com ${n} jogadores!`:'⏳ Aguardando host...';
   } else {
-    st.textContent = `${n} jogador(es). Precisa de pelo menos 2.`;
-    btn.disabled = true;
-    btn.textContent = '⏳ Aguardando mais jogadores...';
+    st.textContent=`${n} jogador(es). Precisa de pelo menos 2.`;
+    btn.disabled=true;
+    btn.textContent='⏳ Aguardando mais jogadores...';
   }
 }
 
 async function hostIniciar(){
-  const snap = await fbGet('salas/'+codigoSala);
-  const sala = snap.val();
-  if(!sala||Object.keys(sala.jogadores||{}).length<2) return;
-  const jogs = Object.values(sala.jogadores).sort((a,b)=>a.slot-b.slot);
-  const props = CASAS.filter(c=>c.tipo==='propriedade').map(c=>({...c,dono:null}));
-  const jogadoresObj = {};
+  const snap=await fbGet('salas/'+codigoSala);
+  const sala=snap.val();
+  if(!sala||Object.keys(sala.jogadores||{}).length<2)return;
+  const jogs=Object.values(sala.jogadores).sort((a,b)=>a.slot-b.slot);
+  const props=CASAS.filter(c=>c.tipo==='propriedade').reduce((acc,c)=>{
+    acc[c.id]={...c,dono:null};return acc;},{});
+  const jogadoresObj={};
   jogs.forEach(jg=>{
     jogadoresObj[jg.id]={
-      ...jg, saldo:1500, posicao:0, propriedades:[], voltas:0, ativo:true,
+      ...jg,saldo:1500,posicao:0,propriedades:[],voltas:0,ativo:true,
       transacoes:[{desc:'Saldo inicial',valor:1500,tipo:'entrada',data:hoje()}]
     };
   });
-  const jogoInit = {
-    ordem: jogs.map(j=>j.id),
-    jogadores: jogadoresObj,
-    turnoIdx: 0, turno: 1, reciboN: 1000,
-    props: props.reduce((acc,p)=>{ acc[p.id]=p; return acc; },{}),
-    log: [{msg:'🏁 Jogo iniciado!',tipo:'lv'}],
-    fase: 'aguardando-dado',
+  const jogoInit={
+    ordem:jogs.map(j=>j.id),
+    jogadores:jogadoresObj,
+    turnoIdx:0,turno:1,reciboN:1000,
+    props,
+    log:[{msg:'🏁 Jogo iniciado! Quem completar 3 voltas primeiro vence!',tipo:'lv'}],
+    fase:'aguardando-dado',
   };
-  await fbSet('jogos/'+codigoSala, jogoInit);
-  await fbUpdate('salas/'+codigoSala, {iniciado:true});
+  await fbSet('jogos/'+codigoSala,jogoInit);
+  await fbUpdate('salas/'+codigoSala,{iniciado:true});
 }
 
 function sairSala(){
-  if(escutarSalaOff){ escutarSalaOff(); escutarSalaOff=null; }
-  if(codigoSala && meuId && !MODO_DEMO){
-    try{ db.ref('salas/'+codigoSala+'/jogadores/'+meuId).remove(); }catch(e){}
+  if(escutarSalaOff){escutarSalaOff();escutarSalaOff=null;}
+  if(codigoSala&&meuId&&!MODO_DEMO){
+    try{db.ref('salas/'+codigoSala+'/jogadores/'+meuId).remove();}catch(e){}
   }
-  codigoSala=null; meuId=null;
+  codigoSala=null;meuId=null;
   irTela('tela-lobby');
 }
 
@@ -848,68 +856,88 @@ function copiar(){
   toast('📋 Código '+codigoSala+' copiado!');
 }
 function mostrarCod(){
-  document.getElementById('mod-cod-val').textContent = codigoSala;
+  document.getElementById('mod-cod-val').textContent=codigoSala;
   am('mod-cod');
 }
 
 // =====================================================
-// ESCUTAR JOGO (FIREBASE REALTIME)
+// ESCUTAR JOGO — FIREBASE REALTIME
 // =====================================================
-let escutarJogoOff = null;
+let escutarJogoOff=null;
 function escutarJogo(){
-  if(escutarJogoOff){ escutarJogoOff(); }
-  escutarJogoOff = fbOn('jogos/'+codigoSala, snap=>{
-    const j = snap.val();
-    if(!j) return;
-    jogo = j;
+  if(escutarJogoOff)escutarJogoOff();
+  escutarJogoOff=fbOn('jogos/'+codigoSala,snap=>{
+    const j=snap.val();
+    if(!j)return;
+    const faseAnt=jogo?.fase;
+    jogo=j;
     atualizarUI();
+
+    // ===================================================
+    // FIX PRINCIPAL: processamento de casa via Firebase
+    // Quando a fase muda para 'processando', APENAS
+    // o jogador da vez executa processarCasa.
+    // Isso evita que o jogo trave para os outros jogadores.
+    // ===================================================
+    if(j.fase==='processando' && faseAnt!=='processando'){
+      const jogadorDaVez=j.ordem[j.turnoIdx];
+      if(jogadorDaVez===meuId){
+        // Sou eu quem deve processar a casa
+        setTimeout(()=>processarCasa(JSON.parse(JSON.stringify(j))),700);
+      }
+    }
   });
 }
 
 // =====================================================
 // UI
 // =====================================================
-function euId(){ return meuId; }
-function jogAtual(){ return jogo ? jogo.jogadores[jogo.ordem[jogo.turnoIdx]] : null; }
-function ehMinhaVez(){ return jogAtual()?.id === meuId; }
-function meuJog(){ return jogo ? jogo.jogadores[meuId] : null; }
+function jogAtual(){ return jogo?jogo.jogadores[jogo.ordem[jogo.turnoIdx]]:null; }
+function ehMinhaVez(){ return jogAtual()?.id===meuId; }
+function meuJog(){ return jogo?jogo.jogadores[meuId]:null; }
 
 function atualizarUI(){
-  if(!jogo) return;
-  const jA = jogAtual();
-  document.getElementById('sb-turno').textContent = jogo.turno;
-  document.getElementById('sb-vez-nome').textContent = jA ? jA.avatar+' '+jA.nome : '—';
-  document.getElementById('top-sala').textContent = codigoSala;
-  document.getElementById('top-turno').textContent = jogo.turno;
-  const mv = document.getElementById('minha-vez-pill');
-  const vo = document.getElementById('vez-outro');
+  if(!jogo)return;
+  const jA=jogAtual();
+  document.getElementById('sb-turno').textContent=jogo.turno;
+  document.getElementById('sb-vez-nome').textContent=jA?jA.avatar+' '+jA.nome:'—';
+  document.getElementById('top-sala').textContent=codigoSala;
+  document.getElementById('top-turno').textContent=jogo.turno;
+  const mv=document.getElementById('minha-vez-pill');
+  const vo=document.getElementById('vez-outro');
   if(ehMinhaVez()){
     mv.style.display='block'; vo.textContent='';
-    document.getElementById('btn-dado').disabled = jogo.fase!=='aguardando-dado';
-    document.getElementById('acao-t').textContent = 'Sua vez! Clique em Rolar Dado!';
-    document.getElementById('acao-s').textContent = 'Turno '+jogo.turno+' • Sala '+codigoSala;
+    document.getElementById('btn-dado').disabled=jogo.fase!=='aguardando-dado';
+    document.getElementById('acao-t').textContent='Sua vez! Clique em Rolar Dado!';
+    document.getElementById('acao-s').textContent='Turno '+jogo.turno+' • Sala '+codigoSala;
   } else {
     mv.style.display='none';
-    vo.textContent = jA ? 'Vez de '+jA.avatar+' '+jA.nome : '';
-    document.getElementById('btn-dado').disabled = true;
-    document.getElementById('acao-t').textContent = jA ? 'Vez de '+jA.nome : '—';
-    document.getElementById('acao-s').textContent = 'Aguardando...';
+    vo.textContent=jA?'Vez de '+jA.avatar+' '+jA.nome:'';
+    document.getElementById('btn-dado').disabled=true;
+    document.getElementById('acao-t').textContent=jA?'Vez de '+jA.nome:'—';
+    document.getElementById('acao-s').textContent='Aguardando...';
   }
   renderBoard();
-  const tabOn = document.querySelector('.stab.on');
-  if(tabOn) renderAba(tabOn.id.replace('tab-',''));
-  // verificar fim
-  const ativos = jogo.ordem.filter(id=>jogo.jogadores[id]?.ativo);
-  if(ativos.length<=1 && document.getElementById('tela-fim').classList.contains('active')===false){ encerrar(); }
+  const tabOn=document.querySelector('.stab.on');
+  if(tabOn)renderAba(tabOn.id.replace('tab-',''));
+  // verificar fim de jogo
+  const ativos=jogo.ordem.filter(id=>jogo.jogadores[id]?.ativo);
+  if(ativos.length<=1&&!document.getElementById('tela-fim').classList.contains('active')){
+    encerrar();return;
+  }
+  if(jogo.ordem.some(id=>jogo.jogadores[id]?.voltas>=3)&&
+     !document.getElementById('tela-fim').classList.contains('active')){
+    encerrar();
+  }
 }
 
 // =====================================================
-// TABULEIRO
+// TABULEIRO SVG — 40 CASAS
 // =====================================================
 function renderBoard(){
-  if(!jogo||!jogo.props) return;
-  const svg = document.getElementById('svg-board');
-  const W=700, H=700;
+  if(!jogo||!jogo.props)return;
+  const svg=document.getElementById('svg-board');
+  const W=700,H=700;
   let out=`<defs>
     <filter id="sh2"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".35"/></filter>
     <radialGradient id="bgG" cx="50%" cy="50%" r="50%">
@@ -922,55 +950,55 @@ function renderBoard(){
     </radialGradient>
   </defs>
   <rect width="${W}" height="${H}" fill="url(#bgG)" rx="20"/>
-  <rect x="90" y="90" width="520" height="520" fill="url(#innerG)" rx="14"/>
-  <rect x="118" y="118" width="464" height="464" fill="#0a2848" rx="10" stroke="#1a4a72" stroke-width="1"/>
-  <!-- Centro decorativo -->
-  <circle cx="350" cy="350" r="120" fill="#0d3060" opacity=".6"/>
-  <circle cx="350" cy="350" r="100" fill="#0a2848" opacity=".8"/>
-  <text x="350" y="325" text-anchor="middle" font-family="Fredoka One,cursive" font-size="30" fill="#3DB8FF" opacity=".9">🌊 BANCO DE</text>
-  <text x="350" y="362" text-anchor="middle" font-family="Fredoka One,cursive" font-size="28" fill="#3DB8FF" opacity=".9">BALNEÁRIO!</text>
-  <text x="350" y="387" text-anchor="middle" font-family="Nunito,sans-serif" font-size="12" fill="#00E5A0" font-weight="700">💰 EDUCAÇÃO FINANCEIRA</text>
-  <text x="350" y="406" text-anchor="middle" font-family="Nunito,sans-serif" font-size="10" fill="#3DB8FF" opacity=".6">Balneário Camboriú • SC • BNCC</text>`;
+  <rect x="80" y="80" width="540" height="540" fill="url(#innerG)" rx="14"/>
+  <rect x="110" y="110" width="480" height="480" fill="#0a2848" rx="10" stroke="#1a4a72" stroke-width="1"/>
+  <circle cx="350" cy="350" r="130" fill="#0d3060" opacity=".6"/>
+  <circle cx="350" cy="350" r="110" fill="#0a2848" opacity=".8"/>
+  <text x="350" y="320" text-anchor="middle" font-family="Fredoka One,cursive" font-size="28" fill="#3DB8FF" opacity=".9">🌊 BANCO DE</text>
+  <text x="350" y="356" text-anchor="middle" font-family="Fredoka One,cursive" font-size="26" fill="#3DB8FF" opacity=".9">BALNEÁRIO!</text>
+  <text x="350" y="381" text-anchor="middle" font-family="Nunito,sans-serif" font-size="11" fill="#00E5A0" font-weight="700">💰 EDUCAÇÃO FINANCEIRA</text>
+  <text x="350" y="398" text-anchor="middle" font-family="Nunito,sans-serif" font-size="9" fill="#3DB8FF" opacity=".6">Balneário Camboriú • SC • BNCC</text>
+  <text x="350" y="416" text-anchor="middle" font-family="Nunito,sans-serif" font-size="10" fill="#FFD23F" opacity=".8">🏆 3 VOLTAS PARA VENCER</text>`;
 
   CASAS.forEach(c=>{
-    const {x,y,tipo,nome,emoji,cor} = c;
-    const propData = tipo==='propriedade' ? jogo.props[c.id] : null;
-    const donoCor = propData?.dono!=null ? jogo.jogadores[propData.dono]?.cor : null;
-    const big = tipo==='inicio'||tipo==='descanso';
-    const w=big?72:60, h=big?72:52;
+    const {x,y,tipo,nome,emoji,cor}=c;
+    const propData=tipo==='propriedade'?jogo.props[c.id]:null;
+    const donoCor=propData?.dono!=null?jogo.jogadores[propData.dono]?.cor:null;
+    const big=tipo==='inicio'||tipo==='descanso';
+    const w=big?66:54,h=big?66:48;
     out+=`<g filter="url(#sh2)">
-      <rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="8"
-        fill="${cor}15" stroke="${donoCor||cor}" stroke-width="${donoCor?2.5:1.5}"/>
-      ${donoCor?`<rect x="${x+w/2-13}" y="${y-h/2}" width="13" height="13" rx="3" fill="${donoCor}"/>`: ''}
-      <text x="${x}" y="${y-2}" text-anchor="middle" dominant-baseline="middle" font-size="${big?22:15}">${emoji}</text>
-      <text x="${x}" y="${y+14}" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="800" font-size="6.5" fill="${cor}" opacity=".9">${nome.length>14?nome.slice(0,13)+'…':nome}</text>
-      ${tipo==='propriedade'&&propData?`<text x="${x}" y="${y+h/2-3}" text-anchor="middle" font-family="Fredoka One,cursive" font-size="7.5" fill="${cor}">R$${propData.preco}</text>`:''}
+      <rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="7"
+        fill="${cor}18" stroke="${donoCor||cor}" stroke-width="${donoCor?2.5:1.5}"/>
+      ${donoCor?`<rect x="${x+w/2-12}" y="${y-h/2}" width="12" height="12" rx="3" fill="${donoCor}"/>`:''}
+      <text x="${x}" y="${y-1}" text-anchor="middle" dominant-baseline="middle" font-size="${big?20:13}">${emoji}</text>
+      <text x="${x}" y="${y+13}" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="800" font-size="5.8" fill="${cor}" opacity=".9">${nome.length>14?nome.slice(0,13)+'…':nome}</text>
+      ${tipo==='propriedade'&&propData?`<text x="${x}" y="${y+h/2-3}" text-anchor="middle" font-family="Fredoka One,cursive" font-size="6.5" fill="${cor}">R$${propData.preco}</text>`:''}
     </g>`;
   });
 
   // Peões
-  const ativos = jogo.ordem.filter(id=>jogo.jogadores[id]?.ativo);
+  const ativos=jogo.ordem.filter(id=>jogo.jogadores[id]?.ativo);
   ativos.forEach((id,i)=>{
-    const jg = jogo.jogadores[id];
-    const c = CASAS[jg.posicao];
-    const angle = (i/Math.max(ativos.length,1))*Math.PI*2;
-    const r = ativos.length>1?13:0;
-    const ox=Math.cos(angle)*r, oy=Math.sin(angle)*r;
-    const isVez = jogo.ordem[jogo.turnoIdx]===id;
-    const isEu = id===meuId;
+    const jg=jogo.jogadores[id];
+    const c=CASAS[jg.posicao];
+    const angle=(i/Math.max(ativos.length,1))*Math.PI*2;
+    const r=ativos.length>1?12:0;
+    const ox=Math.cos(angle)*r,oy=Math.sin(angle)*r;
+    const isVez=jogo.ordem[jogo.turnoIdx]===id;
+    const isEu=id===meuId;
     out+=`
-      ${isVez?`<circle cx="${c.x+ox}" cy="${c.y+oy}" r="18" fill="${jg.cor}" opacity=".2"/>`:''}
-      <circle cx="${c.x+ox}" cy="${c.y+oy}" r="14" fill="${jg.cor}" stroke="${isEu?'#fff':jg.cor}" stroke-width="${isEu?2.5:1.5}" filter="url(#sh2)"/>
-      <text x="${c.x+ox}" y="${c.y+oy+5}" text-anchor="middle" font-size="13">${jg.avatar}</text>`;
+      ${isVez?`<circle cx="${c.x+ox}" cy="${c.y+oy}" r="17" fill="${jg.cor}" opacity=".25"/>`:''}
+      <circle cx="${c.x+ox}" cy="${c.y+oy}" r="13" fill="${jg.cor}" stroke="${isEu?'#fff':jg.cor}" stroke-width="${isEu?2.5:1.5}" filter="url(#sh2)"/>
+      <text x="${c.x+ox}" y="${c.y+oy+5}" text-anchor="middle" font-size="12">${jg.avatar}</text>`;
   });
   svg.innerHTML=out;
 }
 
 // =====================================================
-// DADO — ANIMAÇÃO 3D VERDADEIRA
+// DADO — ANIMAÇÃO 3D EM JS PURO (sem @keyframes)
 // =====================================================
-// Rotações para cada face ficar virada para cima
-const FACES_ROT = {
+// Rotações para cada face ficar virada para a câmera
+const FACES_ROT={
   1:{rx:0,   ry:0},
   2:{rx:0,   ry:180},
   3:{rx:0,   ry:-90},
@@ -979,91 +1007,111 @@ const FACES_ROT = {
   6:{rx:90,  ry:0},
 };
 
-// Gerador de números REALMENTE aleatórios
 function gerarNumeroAleatorio(){
-  // Usa crypto.getRandomValues para aleatoriedade verdadeira
-  const arr = new Uint32Array(1);
+  const arr=new Uint32Array(1);
   crypto.getRandomValues(arr);
-  return (arr[0] % 6) + 1;
+  return (arr[0]%6)+1;
 }
 
-let dadoAnimando = false;
+let dadoAnimando=false;
+
 function rolarDado(){
-  if(!ehMinhaVez()||jogo.fase!=='aguardando-dado'||dadoAnimando) return;
-  dadoAnimando = true;
+  if(!ehMinhaVez()||jogo.fase!=='aguardando-dado'||dadoAnimando)return;
+  dadoAnimando=true;
   document.getElementById('btn-dado').disabled=true;
   document.getElementById('dado-num').textContent='…';
 
-  // Gera resultado com crypto (verdadeiramente aleatório)
-  const resultado = gerarNumeroAleatorio();
-  const cubo = document.getElementById('dado3d');
+  const resultado=gerarNumeroAleatorio();
+  const cubo=document.getElementById('dado3d');
+  const fin=FACES_ROT[resultado];
 
-  // Rotação de spin louco aleatória
-  const spinX = 360*3 + Math.floor(Math.random()*360);
-  const spinY = 360*4 + Math.floor(Math.random()*360);
-  // Rotação final para mostrar a face correta
-  const fin = FACES_ROT[resultado];
-  cubo.style.setProperty('--fx', fin.rx+'deg');
-  cubo.style.setProperty('--fy', fin.ry+'deg');
-  // Force reflow so animation restarts cleanly
-  cubo.classList.remove('girando');
-  void cubo.offsetWidth;
-  cubo.classList.add('girando');
+  // Animação em JS: interpolação de rotações com aceleração/desaceleração
+  const duracao=1300; // ms
+  const inicio=performance.now();
 
-  setTimeout(()=>{
-    cubo.classList.remove('girando');
-    cubo.style.transform = `rotateX(${fin.rx}deg) rotateY(${fin.ry}deg)`;
-    document.getElementById('dado-num').textContent = resultado;
-    dadoAnimando = false;
-    setTimeout(()=>moverJogador(resultado), 300);
-  },1300);
+  // Rotações intermediárias "loucas"
+  const totalSpinX=720+Math.floor(Math.random()*360)+fin.rx;
+  const totalSpinY=1080+Math.floor(Math.random()*360)+fin.ry;
+
+  function animar(agora){
+    const t=Math.min((agora-inicio)/duracao,1);
+    // easing: começa rápido, termina devagar
+    const e=1-Math.pow(1-t,3);
+    const rx=totalSpinX*e;
+    const ry=totalSpinY*e;
+    cubo.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg)`;
+    if(t<1){
+      requestAnimationFrame(animar);
+    } else {
+      // Garante posição final exata
+      cubo.style.transform=`rotateX(${fin.rx}deg) rotateY(${fin.ry}deg)`;
+      document.getElementById('dado-num').textContent=resultado;
+      dadoAnimando=false;
+      // Manda resultado para o Firebase IMEDIATAMENTE
+      moverJogador(resultado);
+    }
+  }
+  requestAnimationFrame(animar);
 }
 
 // =====================================================
-// MOVIMENTAÇÃO
+// MOVIMENTAÇÃO — envia fase='processando' ao Firebase
+// A execução de processarCasa é disparada pelo listener
+// do Firebase em TODOS os clientes, mas somente o
+// jogador da vez a executa (veja escutarJogo)
 // =====================================================
 async function moverJogador(passos){
-  const j = JSON.parse(JSON.stringify(jogo)); // deep copy
-  const jg = j.jogadores[j.ordem[j.turnoIdx]];
-  const ant = jg.posicao;
-  jg.posicao = (jg.posicao + passos) % CASAS.length;
-  if(jg.posicao < ant){
+  const j=JSON.parse(JSON.stringify(jogo));
+  const jg=j.jogadores[j.ordem[j.turnoIdx]];
+  const ant=jg.posicao;
+  const novaPos=(jg.posicao+passos)%CASAS.length;
+
+  // Detectar volta completa: passou pela casa 0
+  // (nova posição menor que anterior, ou saltou sobre o 0)
+  if(novaPos<=ant && !(ant===0 && novaPos===0)){
+    // Só conta volta se realmente passou pelo início
+    // Verifica se o caminho cruzou o índice 0
     jg.voltas++;
     jg.saldo+=200;
     jg.transacoes.push({desc:'Salário — passou pelo INÍCIO',valor:200,tipo:'entrada',data:hoje()});
-    j.log.push({msg:`🏁 ${jg.nome} passou pelo INÍCIO! +R$200`,tipo:'le'});
-    toast('🏁 '+jg.nome+' recebeu R$200 de salário!');
+    j.log.push({msg:`🏁 ${jg.nome} completou volta ${jg.voltas}! +R$200`,tipo:'le'});
+    if(meuId===j.ordem[j.turnoIdx]) toast('🏁 Volta '+jg.voltas+' completa! +R$200');
   }
-  j.fase='processando';
-  await fbSet('jogos/'+codigoSala, j);
+  jg.posicao=novaPos;
+
+  j.fase='processando'; // Sinaliza para TODOS via Firebase
+  j.log.push({msg:`🎲 ${jg.avatar} ${jg.nome} tirou ${passos}`,tipo:'lv'});
+  await fbSet('jogos/'+codigoSala,j);
   jogo=j;
   atualizarUI();
-  setTimeout(()=>processarCasa(j), 700);
+  // NÃO chamamos processarCasa aqui — o listener do Firebase faz isso
 }
 
 async function processarCasa(j){
-  const jg = j.jogadores[j.ordem[j.turnoIdx]];
-  const casa = CASAS[jg.posicao];
+  const jg=j.jogadores[j.ordem[j.turnoIdx]];
+  const casa=CASAS[jg.posicao];
   j.log.push({msg:`📍 ${jg.avatar} ${jg.nome} → ${casa.nome}`,tipo:'lv'});
-  await fbSet('jogos/'+codigoSala, j);
+  // Salva o log mas mantém fase='processando' até o modal ser fechado
+  await fbSet('jogos/'+codigoSala,j);
   jogo=j;
   switch(casa.tipo){
-    case 'inicio': toast('🏁 Início!'); setTimeout(proxTurno,1200); break;
-    case 'descanso': toast('😎 Férias! Descanse.'); setTimeout(proxTurno,1500); break;
+    case 'inicio':   toast('🏁 Início!'); await proxTurno(); break;
+    case 'descanso': toast('😎 Férias! Descanse.'); await proxTurno(); break;
     case 'propriedade': abrirProp(casa,j); break;
     case 'carta-sorte': abrirCarta(j); break;
-    case 'imposto': abrirImposto(casa,j); break;
-    case 'quiz': abrirQuiz(); break;
+    case 'imposto':  abrirImposto(casa,j); break;
+    case 'quiz':     abrirQuiz(); break;
+    default:         await proxTurno();
   }
 }
 
 // =====================================================
 // PROPRIEDADE
 // =====================================================
-function abrirProp(casa, j){
-  const jg = j.jogadores[j.ordem[j.turnoIdx]];
-  const prop = j.props[casa.id];
-  if(!prop) return;
+function abrirProp(casa,j){
+  const jg=j.jogadores[j.ordem[j.turnoIdx]];
+  const prop=j.props[casa.id];
+  if(!prop)return;
   if(prop.dono===null){
     document.getElementById('mod-prop-h').textContent=casa.emoji+' '+casa.nome;
     document.getElementById('mod-prop-b').innerHTML=`
@@ -1085,8 +1133,8 @@ function abrirProp(casa, j){
   } else if(prop.dono===j.ordem[j.turnoIdx]){
     toast('🏠 Sua propriedade!'); setTimeout(proxTurno,1400);
   } else {
-    const dono = j.jogadores[prop.dono];
-    aluguelPend = {prop,dono,jg,casa,j};
+    const dono=j.jogadores[prop.dono];
+    aluguelPend={prop,dono,jg,casa,j};
     j.reciboN++;
     document.getElementById('mod-aluguel-b').innerHTML=`
       <div class="pcard" style="background:${casa.cor}15;border-color:${casa.cor}">
@@ -1108,19 +1156,20 @@ function abrirProp(casa, j){
 }
 
 async function confirmarAluguel(){
-  if(!aluguelPend) return;
-  const {prop,dono,jg,casa} = aluguelPend;
-  const j = JSON.parse(JSON.stringify(jogo));
-  const jgR=j.jogadores[jg.id], donoR=j.jogadores[dono.id];
+  if(!aluguelPend)return;
+  const {prop,dono,jg,casa}=aluguelPend;
+  const j=JSON.parse(JSON.stringify(jogo));
+  const jgR=j.jogadores[jg.id],donoR=j.jogadores[dono.id];
   if(jgR.saldo<prop.aluguel){
     jgR.ativo=false;
     fm('mod-aluguel');
-    document.getElementById('mod-faliu-m').textContent=`${jgR.avatar} ${jgR.nome} não tinha saldo para pagar R$ ${prop.aluguel},00 de aluguel e FALIU!`;
+    document.getElementById('mod-faliu-m').textContent=
+      `${jgR.avatar} ${jgR.nome} não tinha saldo para pagar R$ ${prop.aluguel},00 de aluguel e FALIU!`;
     j.log.push({msg:`💀 ${jgR.nome} faliu!`,tipo:'ls'});
-    await fbSet('jogos/'+codigoSala,j); jogo=j;
-    am('mod-faliu'); atualizarUI(); return;
+    await fbSet('jogos/'+codigoSala,j);jogo=j;
+    am('mod-faliu');atualizarUI();return;
   }
-  jgR.saldo-=prop.aluguel; donoR.saldo+=prop.aluguel;
+  jgR.saldo-=prop.aluguel;donoR.saldo+=prop.aluguel;j.reciboN++;
   jgR.transacoes.push({desc:`Aluguel pago — ${prop.nome}`,valor:prop.aluguel,tipo:'saida',data:hoje()});
   donoR.transacoes.push({desc:`Aluguel recebido — ${prop.nome}`,valor:prop.aluguel,tipo:'entrada',data:hoje()});
   j.log.push({msg:`💸 ${jgR.nome} pagou R$${prop.aluguel} de aluguel para ${donoR.nome}`,tipo:'ls'});
@@ -1136,9 +1185,9 @@ async function confirmarAluguel(){
       <div class="r-l"><span><strong>Saldo ${jgR.nome}</strong></span><span><strong>R$ ${jgR.saldo.toFixed(2)}</strong></span></div>
     </div>
     <div class="tag-b" style="margin-top:.6rem">💡 Aluguel = renda de quem investe em imóveis!</div>`;
-  fm('mod-aluguel'); aluguelPend=null;
-  await fbSet('jogos/'+codigoSala,j); jogo=j;
-  am('mod-recibo'); atualizarUI();
+  fm('mod-aluguel');aluguelPend=null;
+  await fbSet('jogos/'+codigoSala,j);jogo=j;
+  am('mod-recibo');atualizarUI();
 }
 
 async function comprarProp(id){
@@ -1146,9 +1195,9 @@ async function comprarProp(id){
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
   const prop=j.props[id];
   const casa=CASAS.find(c=>c.id===id);
-  if(!prop||jg.saldo<prop.preco) return;
-  jg.saldo-=prop.preco; prop.dono=j.ordem[j.turnoIdx];
-  jg.propriedades.push(id); j.reciboN++;
+  if(!prop||jg.saldo<prop.preco)return;
+  jg.saldo-=prop.preco;prop.dono=j.ordem[j.turnoIdx];
+  jg.propriedades.push(id);j.reciboN++;
   jg.transacoes.push({desc:`Compra — ${prop.nome}`,valor:prop.preco,tipo:'saida',data:hoje()});
   j.log.push({msg:`🏠 ${jg.nome} comprou ${casa.nome} por R$${prop.preco}`,tipo:'le'});
   document.getElementById('mod-recibo-b').innerHTML=`
@@ -1164,8 +1213,8 @@ async function comprarProp(id){
     </div>
     <div class="tag-b" style="margin-top:.6rem">💡 Ótimo investimento! Você vai receber aluguel!</div>`;
   fm('mod-prop');
-  await fbSet('jogos/'+codigoSala,j); jogo=j;
-  am('mod-recibo'); atualizarUI();
+  await fbSet('jogos/'+codigoSala,j);jogo=j;
+  am('mod-recibo');atualizarUI();
 }
 
 // =====================================================
@@ -1195,8 +1244,8 @@ async function abrirCarta(j){
       <div class="r-l"><span>Tipo</span><span>${carta.tipo==='ganhar'?'💰 Receita':'💸 Despesa'}</span></div>
       <div class="r-l"><span><strong>Novo Saldo</strong></span><span><strong>R$ ${jg.saldo.toFixed(2)}</strong></span></div>
     </div>`;
-  await fbSet('jogos/'+codigoSala,j); jogo=j;
-  am('mod-carta'); atualizarUI();
+  await fbSet('jogos/'+codigoSala,j);jogo=j;
+  am('mod-carta');atualizarUI();
 }
 
 // =====================================================
@@ -1220,8 +1269,8 @@ async function abrirImposto(casa,j){
       <div class="r-l"><span>Tipo</span><span>${casa.nome}</span></div>
       <div class="r-l"><span><strong>Saldo restante</strong></span><span><strong>R$ ${jg.saldo.toFixed(2)}</strong></span></div>
     </div>`;
-  await fbSet('jogos/'+codigoSala,j); jogo=j;
-  am('mod-carta'); atualizarUI();
+  await fbSet('jogos/'+codigoSala,j);jogo=j;
+  am('mod-carta');atualizarUI();
 }
 
 // =====================================================
@@ -1239,11 +1288,11 @@ function abrirQuiz(){
 }
 
 async function respQuiz(idx){
-  if(!quizAtivo) return;
+  if(!quizAtivo)return;
   document.querySelectorAll('.qop').forEach(b=>b.disabled=true);
   const ok=idx===quizAtivo.c;
   document.getElementById('qop'+quizAtivo.c).classList.add('ok');
-  if(!ok) document.getElementById('qop'+idx).classList.add('err');
+  if(!ok)document.getElementById('qop'+idx).classList.add('err');
   const j=JSON.parse(JSON.stringify(jogo));
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
   if(ok){
@@ -1257,30 +1306,30 @@ async function respQuiz(idx){
     <div class="qfb" style="background:${ok?'var(--verde-bg)':'var(--vermelho-bg)'};color:${ok?'var(--verde)':'var(--vermelho)'}">
       ${ok?'🎉 <strong>Correto!':'❌ <strong>Errou.'} </strong><br>${quizAtivo.exp}${ok?`<br><strong>+R$ ${quizAtivo.bonus},00!</strong>`:''}
     </div>`;
-  await fbSet('jogos/'+codigoSala,j); jogo=j;
+  await fbSet('jogos/'+codigoSala,j);jogo=j;
   atualizarUI();
-  setTimeout(()=>{ fm('mod-quiz'); proxTurno(); }, 3200);
+  setTimeout(()=>{ fm('mod-quiz'); proxTurno(); },3200);
 }
 
 // =====================================================
 // BANCO — TRANSFERÊNCIA
 // =====================================================
 async function fazerTransferencia(){
-  if(!ehMinhaVez()) return;
+  if(!ehMinhaVez())return;
   const j=JSON.parse(JSON.stringify(jogo));
   const jg=j.jogadores[meuId];
   const destId=document.getElementById('s-dest').value;
   const valor=parseFloat(document.getElementById('s-val').value);
-  if(!destId||isNaN(valor)||valor<=0){ toast('⚠️ Preencha os dados!'); return; }
-  if(jg.saldo<valor){ toast('❌ Saldo insuficiente!'); return; }
+  if(!destId||isNaN(valor)||valor<=0){toast('⚠️ Preencha os dados!');return;}
+  if(jg.saldo<valor){toast('❌ Saldo insuficiente!');return;}
   const dest=j.jogadores[destId];
-  if(!dest) return;
-  jg.saldo-=valor; dest.saldo+=valor; j.reciboN++;
+  if(!dest)return;
+  jg.saldo-=valor;dest.saldo+=valor;j.reciboN++;
   jg.transacoes.push({desc:`Transferência → ${dest.nome}`,valor,tipo:'saida',data:hoje()});
   dest.transacoes.push({desc:`Transferência ← ${jg.nome}`,valor,tipo:'entrada',data:hoje()});
   j.log.push({msg:`💸 ${jg.nome} transferiu R$${valor.toFixed(0)} para ${dest.nome}`,tipo:'lv'});
   document.getElementById('s-val').value='';
-  await fbSet('jogos/'+codigoSala,j); jogo=j;
+  await fbSet('jogos/'+codigoSala,j);jogo=j;
   atualizarUI();
   toast(`✅ R$ ${valor.toFixed(2)} enviado para ${dest.nome}!`);
 }
@@ -1291,33 +1340,52 @@ async function fazerTransferencia(){
 async function proxTurno(){
   const j=JSON.parse(JSON.stringify(jogo));
   const ativos=j.ordem.filter(id=>j.jogadores[id]?.ativo);
-  if(ativos.length<=1){ encerrar(); return; }
-  if(j.ordem.some(id=>j.jogadores[id]?.voltas>=3)){ encerrar(); return; }
-  let prox=(j.turnoIdx+1)%j.ordem.length, t=0;
-  while(!j.jogadores[j.ordem[prox]]?.ativo && t++<j.ordem.length)
+  if(ativos.length<=1){encerrar();return;}
+  if(j.ordem.some(id=>j.jogadores[id]?.voltas>=3)){encerrar();return;}
+  let prox=(j.turnoIdx+1)%j.ordem.length,t=0;
+  while(!j.jogadores[j.ordem[prox]]?.ativo&&t++<j.ordem.length)
     prox=(prox+1)%j.ordem.length;
-  j.turnoIdx=prox; j.turno++; j.fase='aguardando-dado';
-  await fbSet('jogos/'+codigoSala,j); jogo=j;
+  j.turnoIdx=prox;j.turno++;
+  j.fase='aguardando-dado'; // Libera o dado para o próximo jogador
+  await fbSet('jogos/'+codigoSala,j);
+  jogo=j;
   atualizarUI();
 }
 
 // =====================================================
-// ENCERRAR
+// ENCERRAR — soma saldo + valor dos imóveis
 // =====================================================
 function encerrar(){
-  if(!jogo) return;
-  const ord=jogo.ordem.map(id=>jogo.jogadores[id]).sort((a,b)=>b.saldo-a.saldo);
+  if(!jogo)return;
   const m=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣'];
-  document.getElementById('fim-venc').textContent=`${ord[0].avatar} ${ord[0].nome} venceu com R$ ${ord[0].saldo.toFixed(2)}! 🎉`;
+  const ord=jogo.ordem.map(id=>{
+    const jg=jogo.jogadores[id];
+    const valorImoveis=(jg.propriedades||[]).reduce((s,pid)=>s+(jogo.props?.[pid]?.preco||0),0);
+    const patrimonio=jg.saldo+valorImoveis;
+    return {...jg,patrimonio,valorImoveis};
+  }).sort((a,b)=>b.patrimonio-a.patrimonio);
+
+  const vencedor=ord[0];
+  document.getElementById('fim-venc').textContent=
+    `${vencedor.avatar} ${vencedor.nome} venceu com patrimônio de R$ ${vencedor.patrimonio.toFixed(0)}! 🎉`;
+
   document.getElementById('rank-final').innerHTML=
     '<h3 style="font-family:\'Fredoka One\',cursive;color:var(--branco);margin-bottom:.8rem">🏆 Placar Final</h3>'+
     ord.map((jg,i)=>`<div class="rki">
       <div class="rki-pos">${m[i]||''}</div>
       <div class="rki-av" style="border-color:${jg.cor};background:${jg.cor}22">${jg.avatar}</div>
-      <div class="rki-info"><div class="rki-nm">${jg.nome}</div><div class="rki-det">${jg.propriedades.length} imóveis • ${jg.voltas} volta(s)</div></div>
-      <div class="rki-s" style="color:${jg.cor}">R$ ${jg.saldo.toFixed(0)}</div>
+      <div class="rki-info">
+        <div class="rki-nm">${jg.nome}</div>
+        <div class="rki-det">
+          💰 R$${jg.saldo.toFixed(0)} + 🏠 R$${jg.valorImoveis.toFixed(0)} (${jg.propriedades.length} imóvel/is)
+          = R$${jg.patrimonio.toFixed(0)} patrimônio
+          • ${jg.voltas} volta(s)
+        </div>
+      </div>
+      <div class="rki-s" style="color:${jg.cor}">R$ ${jg.patrimonio.toFixed(0)}</div>
     </div>`).join('');
-  if(escutarJogoOff){ escutarJogoOff(); }
+
+  if(escutarJogoOff){escutarJogoOff();escutarJogoOff=null;}
   irTela('tela-fim');
 }
 
@@ -1332,7 +1400,7 @@ function aba(t){
 
 function renderAba(t){
   const body=document.getElementById('sb-body');
-  if(!jogo){ body.innerHTML=''; return; }
+  if(!jogo){body.innerHTML='';return;}
   const j=jogo;
   const eu=meuJog();
   if(t==='jog'){
@@ -1344,13 +1412,15 @@ function renderAba(t){
         const c=CASAS.find(x=>x.id===pid);
         return `<span class="pbadge" style="background:${c?.cor||'#888'}40;color:${c?.cor||'#888'}">${c?.emoji||'🏠'}</span>`;
       }).join('');
+      const patrimonio=jg.saldo+(jg.propriedades||[]).reduce((s,pid)=>{
+        return s+(j.props?.[pid]?.preco||0);},0);
       return `<div class="pjc${vez?' vez':''}${isEu?' eu':''}">
         <div class="pjc-row">
           <div class="pjc-av" style="border-color:${jg.cor};background:${jg.cor}22">${jg.avatar}</div>
           <div style="flex:1;min-width:0">
             <div class="pjc-nome">${jg.nome}${isEu?' <span style="font-size:.6rem;color:var(--azul)">(você)</span>':''}</div>
-            <div class="pjc-saldo" style="color:${jg.cor}">R$ ${jg.saldo.toFixed(0)}</div>
-            <div class="pjc-pos">📍 ${CASAS[jg.posicao]?.nome||'—'} • ${jg.voltas}x</div>
+            <div class="pjc-saldo" style="color:${jg.cor}">R$ ${jg.saldo.toFixed(0)} <span style="font-size:.6rem;color:var(--cinza2)">(+R$${(patrimonio-jg.saldo).toFixed(0)} imóveis)</span></div>
+            <div class="pjc-pos">📍 ${CASAS[jg.posicao]?.nome||'—'} • ${jg.voltas}/3 voltas</div>
           </div>
           ${vez?'<span class="vez-tag">VEZ</span>':''}
         </div>
@@ -1382,7 +1452,7 @@ function renderAba(t){
         </div>`).join(''):'<p style="font-size:.75rem;color:var(--cinza2)">Sem transações.</p>'}
       </div>`;
   } else if(t==='im'){
-    if(!j.props){ body.innerHTML=''; return; }
+    if(!j.props){body.innerHTML='';return;}
     body.innerHTML=Object.values(j.props).map(prop=>{
       const casa=CASAS.find(c=>c.id===prop.id);
       const dono=prop.dono!=null?j.jogadores[prop.dono]:null;
@@ -1408,14 +1478,14 @@ function grupoL(g){
   return{praias:'🏖️ Praias',comercio:'🛍️ Comércio',parques:'🌳 Parques',
     turismo:'🎡 Turismo',transporte:'✈️ Transporte'}[g]||g;
 }
-function am(id){ document.getElementById(id).classList.add('open'); }
-function fm(id){ document.getElementById(id).classList.remove('open'); }
+function am(id){document.getElementById(id).classList.add('open');}
+function fm(id){document.getElementById(id).classList.remove('open');}
 
 let toastT;
 function toast(msg){
   let t=document.getElementById('_t');
   if(!t){
-    t=document.createElement('div'); t.id='_t';
+    t=document.createElement('div');t.id='_t';
     t.style.cssText='position:fixed;bottom:68px;left:50%;transform:translateX(-50%);'+
       'background:#0d2a47;border:1.5px solid #1a4a72;color:#e0f0ff;'+
       'padding:.5rem 1.1rem;border-radius:20px;font-size:.8rem;font-weight:700;'+
@@ -1423,8 +1493,8 @@ function toast(msg){
       'text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.5);transition:opacity .3s';
     document.body.appendChild(t);
   }
-  t.textContent=msg; t.style.opacity='1';
-  clearTimeout(toastT); toastT=setTimeout(()=>t.style.opacity='0',2600);
+  t.textContent=msg;t.style.opacity='1';
+  clearTimeout(toastT);toastT=setTimeout(()=>t.style.opacity='0',2600);
 }
 </script>
 </body>
