@@ -718,6 +718,7 @@ let meuAv = 0;
 let jogo = null;
 let aluguelPend = null;
 let quizAtivo = null;
+let _evFechouEm = 0; // timestamp do último fecharEvento — anti-race na reconexão
 
 try {
   firebase.initializeApp(FB_CONFIG);
@@ -1179,7 +1180,7 @@ async function hostIniciar(){
     ordem:jogs.map(j=>j.id),jogadores:jogadoresObj,
     turnoIdx:0,turno:1,reciboN:1000,props,
     log:[{msg:'🏁 Jogo iniciado! Quem completar 3 voltas primeiro vence!',tipo:'lv'}],
-    fase:'aguardando-dado',
+    fase:'aguardando-dado',eventoAtual:null,
   };
   await fbSet('jogos/'+codigoSala,jogoInit);
   await fbUpdate('salas/'+codigoSala,{iniciado:true});
@@ -1218,6 +1219,10 @@ function escutarJogo(){
     // Som de notificação quando começa minha vez
     if(turnoAnt&&j.turno!==turnoAnt&&j.ordem[j.turnoIdx]===meuId&&j.fase==='aguardando-dado'){
       snd('notif');
+    }
+    // Restaurar card de evento se reconectou no meio de um evento pendente
+    if(j.fase==='processando'&&j.eventoAtual&&j.ordem[j.turnoIdx]===meuId){
+      setTimeout(restaurarEvento,400);
     }
   });
 }
@@ -1489,7 +1494,42 @@ function fecharEvento(fn){
   const ov  = document.getElementById('ev-overlay');
   const card= document.getElementById('ev-card');
   card.style.animation='evSair .3s ease-in forwards';
+  _evFechouEm=Date.now();
   setTimeout(()=>{ ov.classList.remove('vis'); card.style.animation=''; card.className=''; if(fn)fn(); }, 310);
+}
+
+// =====================================================
+// RESTAURAR EVENTO APÓS RECONEXÃO
+// =====================================================
+function restaurarEvento(){
+  const ev=jogo?.eventoAtual;
+  if(!ev||!ev.tipo)return;
+  // Anti-race: evento foi fechado há menos de 2s (proxTurno ainda não gravou o null)
+  if(Date.now()-_evFechouEm<2000)return;
+  // Overlay já visível — não reabrir
+  if(document.getElementById('ev-overlay')?.classList.contains('vis'))return;
+  // Só o jogador da vez restaura seu próprio evento
+  if(!ehMinhaVez())return;
+  switch(ev.tipo){
+    case 'carta-sorte':
+    case 'imposto':
+      mostrarEvento({
+        emoji:ev.emoji,titulo:ev.titulo,narrativa:ev.narrativa,
+        valor:ev.valor,cor:ev.cor,tagHtml:ev.tagHtml,reciboHtml:ev.reciboHtml,
+        btnTxt:ev.btnTxt||'Entendido!',btnFn:proxTurno
+      });
+      break;
+    case 'prop-livre':
+    case 'prop-propria':
+    case 'prop-aluguel':{
+      const casa=CASAS.find(c=>c.id===ev.casaId);
+      if(casa)abrirProp(casa,JSON.parse(JSON.stringify(jogo)));
+      break;
+    }
+    case 'quiz':
+      if(!document.getElementById('mod-quiz')?.classList.contains('vis'))abrirQuiz();
+      break;
+  }
 }
 
 // =====================================================
@@ -1662,6 +1702,18 @@ async function processarCasa(j){
     if(!jg){await proxTurno();return;}
     const casa=CASAS[jg.posicao];
     if(!casa){await proxTurno();return;}
+    // Registrar evento pendente no Firebase ANTES de gravar — permite restaurar ao reconectar
+    if(casa.tipo==='propriedade'){
+      const prop=j.props[casa.id];
+      const ct=j.ordem[j.turnoIdx];
+      if(!prop||prop.dono===null)         j.eventoAtual={tipo:'prop-livre',   casaId:casa.id};
+      else if(prop.dono===ct)             j.eventoAtual={tipo:'prop-propria', casaId:casa.id};
+      else                                j.eventoAtual={tipo:'prop-aluguel', casaId:casa.id};
+    } else if(['carta-sorte','imposto','quiz'].includes(casa.tipo)){
+      j.eventoAtual={tipo:casa.tipo,casaId:jg.posicao};
+    } else {
+      j.eventoAtual=null;
+    }
     j.log.push({msg:`📍 ${jg.avatar} ${jg.nome} → ${casa.nome}`,tipo:'lv'});
     await fbSet('jogos/'+codigoSala,j);
     jogo=j;
@@ -1861,6 +1913,11 @@ async function abrirCarta(j){
     j.log.push({msg:`🃏 ${jg.nome}: ${carta.titulo} -R$${carta.valor}`,tipo:'ls'});
     snd('perder');
   }
+  // Persistir evento completo para reconexão (transação já aplicada acima)
+  j.eventoAtual={tipo:'carta-sorte',emoji:carta.emoji,titulo:carta.titulo,narrativa:carta.desc,
+    valor:ganhou?carta.valor:-carta.valor,cor:ganhou?'var(--verde)':'var(--vermelho)',
+    tagHtml:`💡 ${ganhou?'Renda extra! Sempre guarde uma parte do que receber.':'Gastos imprevistos acontecem. Uma reserva de emergência ajuda!'}`,
+    btnTxt:ganhou?'Que sorte! 🎉':'Entendido! 😅'};
   await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
   if(meuId===j.ordem[j.turnoIdx]){
     mostrarEvento({
@@ -1885,14 +1942,19 @@ async function abrirImposto(casa,j){
   jg.transacoes.push({desc:'Imposto — '+casa.nome,valor:val,tipo:'saida',data:hoje()});
   j.log.push({msg:`🏛️ ${jg.nome} pagou imposto R$${val}`,tipo:'ls'});
   snd('pagar');
-  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
   const narr=NARRATIVAS_IMPOSTO[casa.nome]||`Imposto cobrado pelo governo de BC. É com esses recursos que a cidade funciona!`;
+  const _tagImp=`💡 ${casa.tipo==='imposto'&&casa.nome.includes('Multa')?'Multas ensinam sobre responsabilidade no trânsito!':'Impostos financiam escolas, saúde e praias de BC!'}`;
+  const _recImp=`<div class="r-t">🧾 RECIBO DE PAGAMENTO</div><div class="r-n">Prefeitura de Balneário Camboriú</div><div class="r-l"><span>Tributo</span><span>${casa.nome}</span></div><div class="r-l"><span>Contribuinte</span><span>${jg.avatar} ${escHtml(jg.nome||'')}</span></div><div class="r-l"><span><strong>Valor Pago</strong></span><span class="rn"><strong>− R$ ${val},00</strong></span></div><div class="r-l"><span>Novo Saldo</span><span>R$ ${jg.saldo.toFixed(0)},00</span></div>`;
+  // Persistir evento completo para reconexão (transação já aplicada acima)
+  j.eventoAtual={tipo:'imposto',emoji:casa.emoji||'🏛️',titulo:casa.nome,narrativa:narr,
+    valor:-val,cor:'var(--vermelho)',tagHtml:_tagImp,reciboHtml:_recImp,btnTxt:'Paguei! 😤'};
+  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
   if(meuId===j.ordem[j.turnoIdx]){
     mostrarEvento({
       emoji:casa.emoji||'🏛️',titulo:casa.nome,narrativa:narr,
       valor:-val,cor:'var(--vermelho)',
-      tagHtml:`💡 ${casa.tipo==='imposto'&&casa.nome.includes('Multa')?'Multas ensinam sobre responsabilidade no trânsito!':'Impostos financiam escolas, saúde e praias de BC!'}`,
-      reciboHtml:`<div class="r-t">🧾 RECIBO DE PAGAMENTO</div><div class="r-n">Prefeitura de Balneário Camboriú</div><div class="r-l"><span>Tributo</span><span>${casa.nome}</span></div><div class="r-l"><span>Contribuinte</span><span>${jg.avatar} ${escHtml(jg.nome||'')}</span></div><div class="r-l"><span><strong>Valor Pago</strong></span><span class="rn"><strong>− R$ ${val},00</strong></span></div><div class="r-l"><span>Novo Saldo</span><span>R$ ${jg.saldo.toFixed(0)},00</span></div>`,
+      tagHtml:_tagImp,
+      reciboHtml:_recImp,
       btnTxt:'Paguei! 😤',btnFn:proxTurno
     });
   } else {
@@ -1982,7 +2044,7 @@ async function proxTurno(){
     while(!j.jogadores[j.ordem[prox]]?.ativo&&t++<j.ordem.length)
       prox=(prox+1)%j.ordem.length;
     j.turnoIdx=prox;j.turno++;
-    j.fase='aguardando-dado';
+    j.fase='aguardando-dado';j.eventoAtual=null;
     await fbSet('jogos/'+codigoSala,j);
     jogo=j;atualizarUI();
   }finally{
