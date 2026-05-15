@@ -1907,7 +1907,7 @@ function abrirProp(casa,j){
     const mono=temMonopolio(prop.dono,casa.grupo,j);
     const aluguelReal=calcularAluguel(prop,mono);
     aluguelPend={prop,dono,jg,casa,j,aluguel:aluguelReal,mono};
-    const devInfo=prop.hotel?'🏨 Hotel':prop.casas>0?'🏠'.repeat(prop.casas)+` (${prop.casas} casa${prop.casas>1?'s':''})':'Terreno';
+    const devInfo=prop.hotel?'🏨 Hotel':prop.casas>0?'🏠'.repeat(prop.casas)+`(${prop.casas} casa${prop.casas>1?'s':''})`:'Terreno';
     const narr=`${dono.avatar} ${dono.nome} é dono de ${casa.nome}! ${mono?'⭐ Tem o grupo todo — aluguel em dobro! ':''} ${prop.hotel?'Hotel de luxo! ':''}Você precisa pagar a diária.`;
     if(meuId===j.ordem[j.turnoIdx]){
       snd(mono?'perder':'click');
