@@ -244,6 +244,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 .log-row.le{border-left-color:var(--verde)}
 .log-row.ls{border-left-color:var(--vermelho)}
 .log-row.lv{border-left-color:var(--azul)}
+.log-row.err{border-left-color:#FF6B35;background:#1a0a00;color:#ff9966;font-family:monospace;font-size:.65rem}
 
 /* CHAT */
 .chat-msg{display:flex;gap:.35rem;padding:.3rem .4rem;border-radius:6px;background:var(--card2);margin-bottom:.25rem;border-left:2px solid var(--borda);align-items:flex-start}
@@ -1799,24 +1800,30 @@ document.addEventListener('keydown',e=>{
 // MOVIMENTAÇÃO
 // =====================================================
 async function moverJogador(passos){
-  const j=JSON.parse(JSON.stringify(jogo));
-  const jg=j.jogadores[j.ordem[j.turnoIdx]];
-  const ant=jg.posicao;
-  const novaPos=(jg.posicao+passos)%CASAS.length;
-  if(novaPos<=ant&&!(ant===0&&novaPos===0)){
-    jg.voltas++;
-    jg.saldo+=200;
-    jg.transacoes.push({desc:'Salário — passou pelo INÍCIO',valor:200,tipo:'entrada',data:hoje()});
-    j.log.push({msg:`🏁 ${jg.nome} completou volta ${jg.voltas}! +R$200`,tipo:'le'});
-    if(meuId===j.ordem[j.turnoIdx]){toast('🏁 Volta '+jg.voltas+' completa! +R$200');snd('volta');}
+  try{
+    const j=JSON.parse(JSON.stringify(jogo));
+    const jg=j.jogadores[j.ordem[j.turnoIdx]];
+    const ant=jg.posicao;
+    const novaPos=(jg.posicao+passos)%CASAS.length;
+    if(novaPos<=ant&&!(ant===0&&novaPos===0)){
+      jg.voltas++;
+      jg.saldo+=200;
+      jg.transacoes.push({desc:'Salário — passou pelo INÍCIO',valor:200,tipo:'entrada',data:hoje()});
+      j.log.push({msg:`🏁 ${jg.nome} completou volta ${jg.voltas}! +R$200`,tipo:'le'});
+      if(meuId===j.ordem[j.turnoIdx]){toast('🏁 Volta '+jg.voltas+' completa! +R$200');snd('volta');}
+    }
+    jg.posicao=novaPos;
+    j.fase='processando';
+    j.log.push({msg:`🎲 ${jg.avatar} ${jg.nome} tirou ${passos}`,tipo:'lv'});
+    await fbSet('jogos/'+codigoSala,j);
+    jogo=j; atualizarUI();
+    // Só o jogador da vez processa a casa — direto, sem depender do listener
+    setTimeout(()=>processarCasa(JSON.parse(JSON.stringify(jogo))),600);
+  }catch(err){
+    logErro('moverJogador: '+String(err?.message||err));
+    dadoAnimando=false;
+    document.getElementById('btn-dado').disabled=false;
   }
-  jg.posicao=novaPos;
-  j.fase='processando';
-  j.log.push({msg:`🎲 ${jg.avatar} ${jg.nome} tirou ${passos}`,tipo:'lv'});
-  await fbSet('jogos/'+codigoSala,j);
-  jogo=j; atualizarUI();
-  // Só o jogador da vez processa a casa — direto, sem depender do listener
-  setTimeout(()=>processarCasa(JSON.parse(JSON.stringify(jogo))),600);
 }
 
 async function processarCasa(j){
@@ -1850,8 +1857,7 @@ async function processarCasa(j){
       default:         await proxTurno();
     }
   }catch(err){
-    console.error('processarCasa erro:',err);
-    toast('⚠️ Erro ao processar casa — avançando turno');
+    logErro('processarCasa: '+String(err?.message||err), {posicao:j?.jogadores?.[j?.ordem?.[j?.turnoIdx]]?.posicao});
     setTimeout(proxTurno,1000);
   }
 }
@@ -1868,7 +1874,7 @@ function temMonopolio(playerId, grupo, j){
 function abrirProp(casa,j){
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
   const prop=j.props?.[casa.id]||j.props?.[String(casa.id)];
-  if(!prop){console.warn('abrirProp: prop não encontrada para id',casa.id,'props keys:',Object.keys(j.props||{}));setTimeout(proxTurno,500);return;}
+  if(!prop){logErro(`abrirProp: prop id=${casa.id} não encontrada. Keys presentes: ${Object.keys(j.props||{}).join(',')}`);setTimeout(proxTurno,500);return;}
 
   if(prop.dono===null){
     // ── Terreno livre: oferta de compra ──
@@ -2498,6 +2504,30 @@ async function verificarDesconectados(){
 // =====================================================
 // HELPERS
 // =====================================================
+
+// logErro — registra erros inesperados no log do jogo (Firebase) e no console.
+// NÃO mostra nada na tela. Use para falhas internas, não validação de UX.
+function logErro(msg, contexto){
+  const ts=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const entrada={msg:`⚠️ [${ts}] ${msg}`, tipo:'err'};
+  console.error('[ERRO]', msg, contexto||'');
+  // Grava no log local e tenta persistir no Firebase
+  try{
+    if(jogo?.log){
+      jogo.log.push(entrada);
+      if(!MODO_DEMO && codigoSala && db){
+        db.ref('jogos/'+codigoSala+'/log').set(jogo.log)
+          .catch(e=>console.error('[logErro] Firebase write falhou:',e));
+      }
+      // Atualiza sidebar se aba log estiver ativa
+      const tabOn=document.querySelector('.stab.on');
+      if(tabOn?.id==='tab-log') renderAba('log');
+    }
+  }catch(e){
+    console.error('[logErro] Erro ao gravar no log:',e);
+  }
+}
+
 function grupoL(g){
   return{praias:'🏖️ Praias',comercio:'🛍️ Comércio',parques:'🌳 Parques',
     turismo:'🎡 Turismo',transporte:'✈️ Transporte'}[g]||g;
