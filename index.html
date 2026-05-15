@@ -1607,7 +1607,6 @@ function mostrarEvento(cfg){
   card.className='';
   void card.offsetWidth;
   card.className='ev-anim';
-  _diag('3/3 mostrarEvento → adicionando vis. titulo='+cfg.titulo); // TEMP
   ov.classList.add('vis');
   if(cfg.autoMs) setTimeout(()=>fecharEvento(cfg.autoFn), cfg.autoMs);
 }
@@ -1837,7 +1836,7 @@ async function processarCasa(j){
     if(casa.tipo==='propriedade'){
       const prop=j.props[casa.id];
       const ct=j.ordem[j.turnoIdx];
-      if(!prop||prop.dono===null)         j.eventoAtual={tipo:'prop-livre',   casaId:casa.id};
+      if(!prop||prop.dono==null)          j.eventoAtual={tipo:'prop-livre',   casaId:casa.id};
       else if(prop.dono===ct)             j.eventoAtual={tipo:'prop-propria', casaId:casa.id};
       else                                j.eventoAtual={tipo:'prop-aluguel', casaId:casa.id};
     } else if(['carta-sorte','imposto','quiz'].includes(casa.tipo)){
@@ -1848,7 +1847,6 @@ async function processarCasa(j){
     j.log.push({msg:`📍 ${jg.avatar} ${jg.nome} → ${casa.nome}`,tipo:'lv'});
     await fbSet('jogos/'+codigoSala,j);
     jogo=j;
-    _diag('1/3 processarCasa → tipo='+casa.tipo+' nome='+casa.nome); // TEMP
     switch(casa.tipo){
       case 'inicio':   toast('🏁 Início! +R$200');await proxTurno();break;
       case 'descanso': toast('😎 Férias em BC!');setTimeout(proxTurno,1500);break;
@@ -1876,10 +1874,9 @@ function temMonopolio(playerId, grupo, j){
 function abrirProp(casa,j){
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
   const prop=j.props?.[casa.id]||j.props?.[String(casa.id)];
-  _diag('2/3 abrirProp → prop='+(prop?'OK':'NULL')+' dono='+prop?.dono+' id='+casa.id); // TEMP
   if(!prop){logErro(`abrirProp: prop id=${casa.id} não encontrada. Keys presentes: ${Object.keys(j.props||{}).join(',')}`);setTimeout(proxTurno,500);return;}
 
-  try{ if(prop.dono===null){
+  try{ if(prop.dono==null){
     // ── Terreno livre: oferta de compra ──
     const podComprar=jg.saldo>=prop.preco;
     const grupoTotal=GRUPOS[casa.grupo]?.length||0;
@@ -1956,7 +1953,6 @@ function abrirProp(casa,j){
     }
   }}catch(errProp){
     // Erro ao montar o card da propriedade — card de emergência
-    _diag('ERRO abrirProp: '+errProp?.message); // TEMP
     logErro('abrirProp render: '+String(errProp?.message||errProp));
     mostrarEvento({
       emoji:casa.emoji,titulo:casa.nome,
@@ -2514,26 +2510,6 @@ async function verificarDesconectados(){
     '⚡ Você saiu de uma partida! Sala: '+sessao.codigoSala+' — Clique para voltar.';
   box.classList.add('vis');
 })();
-
-// =====================================================
-// ⚠️ TEMP DEBUG — remover após diagnóstico
-function _diag(msg){
-  let el=document.getElementById('_diagbox');
-  if(!el){
-    el=document.createElement('div');el.id='_diagbox';
-    el.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);'+
-      'background:#7c2200;border:1px solid #ff6b35;color:#ffb899;padding:.4rem .8rem;'+
-      'border-radius:8px;font-family:monospace;font-size:.7rem;z-index:9999;'+
-      'white-space:pre-wrap;max-width:95vw;text-align:left;line-height:1.5;'+
-      'box-shadow:0 4px 20px rgba(0,0,0,.6)';
-    document.body.appendChild(el);
-  }
-  el.innerHTML=(el.innerHTML?el.innerHTML+'<br>':'')+escHtml(String(msg));
-  el.style.display='block';
-  clearTimeout(el._t);
-  el._t=setTimeout(()=>{el.style.display='none';el.innerHTML='';},8000);
-}
-// ⚠️ fim TEMP DEBUG
 
 // =====================================================
 // HELPERS
