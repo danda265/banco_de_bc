@@ -235,14 +235,18 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 .btn-novo{background:linear-gradient(135deg,var(--verde),var(--azul2));color:var(--bg);padding:.82rem 2rem;border:none;border-radius:14px;font-family:'Fredoka One',cursive;font-size:1.15rem;cursor:pointer;width:100%;margin-bottom:.5rem}
 
 /* MOBILE */
-.sb-mob-btn{display:none;position:fixed;bottom:1rem;right:1rem;z-index:80;background:var(--azul);border:none;color:#fff;width:46px;height:46px;border-radius:50%;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px #3DB8FF55}
+.sb-mob-btn{display:none}
+.sb-top-btn{display:none;background:var(--card);border:1.5px solid var(--borda);color:var(--branco);width:36px;height:36px;border-radius:8px;font-size:1.1rem;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0}
 .sb-overlay{display:none;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.45)}
 .sb-overlay.vis{display:block}
 @media(max-width:860px){
   .sb{position:fixed;left:-290px;z-index:60;box-shadow:4px 0 24px rgba(0,0,0,.6)}
   .sb.aberta{left:0}
-  .sb-mob-btn{display:flex;align-items:center;justify-content:center}
+  .sb-top-btn{display:flex}
   #svg-board{width:100%;min-width:0;height:auto}
+  .btn-dado-big{font-size:.9rem;padding:.55rem .9rem}
+  .acao{gap:.4rem;padding:.5rem .5rem}
+  .acao-txt{display:none}
 }
 
 /* SPINNER */
@@ -359,6 +363,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   </div>
   <div class="main">
     <div class="main-top">
+      <button class="sb-top-btn" onclick="abrirSb()" title="Menu">☰</button>
       <div class="pill pill-sala" onclick="mostrarCod()" title="Ver código">🔗 <span id="top-sala">----</span></div>
       <div class="pill pill-turno">Turno <span id="top-turno">1</span></div>
       <div class="pill pill-vez" id="minha-vez-pill" style="display:none">🎲 SUA VEZ!</div>
@@ -388,7 +393,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
       <button class="btn-dado-big" id="btn-dado" onclick="rolarDado()" disabled>🎲 Rolar Dado!</button>
     </div>
   </div>
-  <button class="sb-mob-btn" id="sb-mob-btn" onclick="abrirSb()">☰</button>
 </div>
 
 <!-- FIM -->
