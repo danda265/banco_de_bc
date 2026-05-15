@@ -23,36 +23,35 @@
 }
 body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min-height:100vh;overflow-x:hidden}
 
-/* ====== DADO 3D ====== */
-.dado-cena{width:72px;height:72px;perspective:400px;flex-shrink:0;filter:drop-shadow(0 6px 18px #3DB8FF66)}
-.dado-cubo{width:72px;height:72px;position:relative;transform-style:preserve-3d;transform:rotateX(-25deg) rotateY(35deg);transition:transform .12s ease}
-.dado-face{position:absolute;width:72px;height:72px;
-  background:linear-gradient(145deg,#f0f8ff,#ddeeff);
-  border:2px solid #a8cce8;border-radius:14px;
+/* ====== DADO 2D (compatível com overflow:hidden) ====== */
+.dado-cena{width:72px;height:72px;flex-shrink:0;perspective:none}
+.dado-cubo{width:72px;height:72px;position:relative}
+.dado-face{display:none}
+/* Dado visual principal */
+.dado-2d{width:72px;height:72px;
+  background:linear-gradient(145deg,#f0f8ff,#c8e0f8);
+  border:3px solid #6aabdf;border-radius:14px;
   display:grid;padding:9px;gap:4px;
-  box-shadow:inset 0 3px 8px rgba(255,255,255,.95),inset 0 -2px 5px rgba(100,150,200,.25),0 2px 4px rgba(0,0,0,.3);
-  backface-visibility:hidden}
-.dado-face.f1{transform:rotateY(  0deg) translateZ(36px)}
-.dado-face.f2{transform:rotateY(180deg) translateZ(36px)}
-.dado-face.f3{transform:rotateY( 90deg) translateZ(36px)}
-.dado-face.f4{transform:rotateY(-90deg) translateZ(36px)}
-.dado-face.f5{transform:rotateX( 90deg) translateZ(36px)}
-.dado-face.f6{transform:rotateX(-90deg) translateZ(36px)}
+  box-shadow:0 4px 18px rgba(0,0,0,.35),inset 0 2px 6px rgba(255,255,255,.9),inset 0 -2px 4px rgba(100,160,220,.3);
+  transition:transform .08s ease;position:relative;overflow:hidden}
+.dado-2d::after{content:'';position:absolute;top:0;left:0;right:0;height:35%;
+  background:linear-gradient(rgba(255,255,255,.6),transparent);border-radius:11px 11px 0 0;pointer-events:none}
 .pip{width:12px;height:12px;border-radius:50%;
-  background:radial-gradient(circle at 35% 35%,#2a6090,#0d3a60);
-  box-shadow:inset 0 2px 3px rgba(0,0,0,.4),0 1px 1px rgba(255,255,255,.3)}
-/* face layouts */
-.f1-l{grid-template-areas:'a b c''d e f''g h i';place-items:center}
-.f1-l .pip{grid-area:e}
-.f2-l{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;place-items:center}
-.f3-l{grid-template-areas:'a . c''. e .''g . i';place-items:center}
-.f3-l .p1{grid-area:a}.f3-l .p2{grid-area:e}.f3-l .p3{grid-area:i}
-.f4-l{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;place-items:center}
-.f5-l{grid-template-areas:'a . c''. e .''g . i';place-items:center}
-.f5-l .p1{grid-area:a}.f5-l .p2{grid-area:c}.f5-l .p3{grid-area:e}.f5-l .p4{grid-area:g}.f5-l .p5{grid-area:i}
-.f6-l{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 1fr;place-items:center}
-@keyframes dadoGlow{0%,100%{filter:drop-shadow(0 4px 12px #3DB8FF55)}50%{filter:drop-shadow(0 4px 24px #3DB8FFaa)}}
-.dado-vez{animation:dadoGlow 1.2s ease-in-out infinite}
+  background:radial-gradient(circle at 35% 35%,#1a5080,#0a2840);
+  box-shadow:inset 0 2px 3px rgba(0,0,0,.4),0 1px 1px rgba(255,255,255,.2)}
+/* Layouts de pontos por face */
+.d1{grid-template-areas:'a b c''d e f''g h i';place-items:center}
+.d1 .pip:only-child{grid-area:e}
+.d2{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;place-items:center;align-content:space-between}
+.d3{grid-template-areas:'a . .''.. e ..'' . . i';place-items:center}
+.d4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;place-items:center}
+.d5{grid-template-areas:'a . c''. e .''g . i';place-items:center}
+.d6{grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);place-items:center}
+@keyframes dadoBounce{0%,100%{transform:scale(1) rotate(-2deg)}50%{transform:scale(1.06) rotate(2deg)}}
+@keyframes dadoShake{0%,100%{transform:rotate(-8deg) scale(.95)}25%{transform:rotate(12deg) scale(1.08)}50%{transform:rotate(-10deg) scale(.92)}75%{transform:rotate(8deg) scale(1.05)}}
+@keyframes dadoGlow{0%,100%{box-shadow:0 4px 18px rgba(0,0,0,.35),0 0 0 0 #3DB8FF44}50%{box-shadow:0 4px 24px rgba(0,0,0,.35),0 0 18px 6px #3DB8FF33}}
+.dado-vez .dado-2d{animation:dadoGlow 1.2s ease-in-out infinite}
+.dado-rolando .dado-2d{animation:dadoShake .15s linear infinite}
 
 @keyframes pulseGlow2{0%,100%{box-shadow:0 0 0 0 #00E5A044}50%{box-shadow:0 0 14px 5px #00E5A022}}
 @keyframes popIn{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
@@ -166,7 +165,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 .chat-send{background:var(--verde);border:none;color:var(--bg);width:30px;height:30px;border-radius:6px;font-size:.9rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800}
 
 /* MAIN */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.main{flex:1;display:flex;flex-direction:column;overflow:clip;min-width:0}
 .main-top{background:var(--card2);border-bottom:1px solid var(--borda);padding:.55rem .8rem;display:flex;align-items:center;gap:.6rem;flex-shrink:0;flex-wrap:wrap}
 .pill{padding:.22rem .7rem;border-radius:20px;font-size:.72rem;font-weight:800}
 .pill-sala{background:var(--azul-bg);border:1px solid var(--azul);color:var(--azul);cursor:pointer}
@@ -395,12 +394,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
     <div class="acao">
       <div class="dado-cena">
         <div class="dado-cubo" id="dado3d">
-          <div class="dado-face f1 f1-l"><div class="pip"></div></div>
-          <div class="dado-face f2 f2-l"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
-          <div class="dado-face f3 f3-l"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div></div>
-          <div class="dado-face f4 f4-l"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
-          <div class="dado-face f5 f5-l"><div class="pip p1"></div><div class="pip p2"></div><div class="pip p3"></div><div class="pip p4"></div><div class="pip p5"></div></div>
-          <div class="dado-face f6 f6-l"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+          <div class="dado-2d d1" id="dado-visual"><div class="pip"></div></div>
         </div>
       </div>
       <div id="dado-num" style="font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--amarelo);min-width:32px;text-align:center">—</div>
@@ -448,9 +442,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 </div></div>
 
 <div class="ov" id="mod-carta"><div class="mbox">
-  <div class="mh"><h3>🃏 Carta Especial</h3><button class="mc" onclick="fm('mod-carta');proxTurno()">✕</button></div>
+  <div class="mh"><h3>🃏 Carta Especial</h3><button class="mc" onclick="fm('mod-carta')">✕</button></div>
   <div id="mod-carta-b"></div>
-  <button class="bm bm-p" style="margin-top:.7rem" onclick="fm('mod-carta');proxTurno()">✅ Entendido!</button>
+  <button class="bm bm-p" style="margin-top:.7rem" onclick="fm('mod-carta')">✅ Ok!</button>
 </div></div>
 
 <div class="ov" id="mod-quiz"><div class="mbox">
@@ -1158,29 +1152,26 @@ function rolarDado(){
   dadoAnimando=true;
   document.getElementById('btn-dado').disabled=true;
   document.getElementById('dado-num').textContent='…';
+  const wrap=document.getElementById('dado3d');
+  if(wrap)wrap.classList.add('dado-rolando');
   snd('dado');
 
   const resultado=gerarNumeroAleatorio();
-  const cubo=document.getElementById('dado3d');
-  const fin=FACES_ROT[resultado];
-  const duracao=1300;
-  const inicio=performance.now();
-  const totalSpinX=720+Math.floor(Math.random()*360)+fin.rx;
-  const totalSpinY=1080+Math.floor(Math.random()*360)+fin.ry;
+  let tick=0;
+  const totalTicks=18; // ~1.3s a 70ms/tick
 
-  function animar(agora){
-    const t=Math.min((agora-inicio)/duracao,1);
-    const e=1-Math.pow(1-t,3);
-    cubo.style.transform=`rotateX(${totalSpinX*e}deg) rotateY(${totalSpinY*e}deg)`;
-    if(t<1){requestAnimationFrame(animar);}
-    else{
-      cubo.style.transform=`rotateX(${fin.rx}deg) rotateY(${fin.ry}deg)`;
+  const iv=setInterval(()=>{
+    tick++;
+    mostrarFaceDado((tick%6)+1);
+    if(tick>=totalTicks){
+      clearInterval(iv);
+      mostrarFaceDado(resultado);
+      if(wrap)wrap.classList.remove('dado-rolando');
       document.getElementById('dado-num').textContent=resultado;
       dadoAnimando=false;
       moverJogador(resultado);
     }
-  }
-  requestAnimationFrame(animar);
+  },70);
 }
 
 // Spacebar shortcut
@@ -1216,19 +1207,27 @@ async function moverJogador(passos){
 }
 
 async function processarCasa(j){
-  const jg=j.jogadores[j.ordem[j.turnoIdx]];
-  const casa=CASAS[jg.posicao];
-  j.log.push({msg:`📍 ${jg.avatar} ${jg.nome} → ${casa.nome}`,tipo:'lv'});
-  await fbSet('jogos/'+codigoSala,j);
-  jogo=j;
-  switch(casa.tipo){
-    case 'inicio':   toast('🏁 Início!');await proxTurno();break;
-    case 'descanso': toast('😎 Férias! Descanse.');await proxTurno();break;
-    case 'propriedade': abrirProp(casa,j);break;
-    case 'carta-sorte': abrirCarta(j);break;
-    case 'imposto':  abrirImposto(casa,j);break;
-    case 'quiz':     abrirQuiz();break;
-    default:         await proxTurno();
+  try{
+    const jg=j.jogadores[j.ordem[j.turnoIdx]];
+    if(!jg){await proxTurno();return;}
+    const casa=CASAS[jg.posicao];
+    if(!casa){await proxTurno();return;}
+    j.log.push({msg:`📍 ${jg.avatar} ${jg.nome} → ${casa.nome}`,tipo:'lv'});
+    await fbSet('jogos/'+codigoSala,j);
+    jogo=j;
+    switch(casa.tipo){
+      case 'inicio':   toast('🏁 Início! +R$200');await proxTurno();break;
+      case 'descanso': toast('😎 Férias em BC!');setTimeout(proxTurno,1500);break;
+      case 'propriedade': abrirProp(casa,j);break;
+      case 'carta-sorte': await abrirCarta(j);break;
+      case 'imposto':  await abrirImposto(casa,j);break;
+      case 'quiz':     abrirQuiz();break;
+      default:         await proxTurno();
+    }
+  }catch(err){
+    console.error('processarCasa erro:',err);
+    toast('⚠️ Erro ao processar casa — avançando turno');
+    setTimeout(proxTurno,1000);
   }
 }
 
@@ -1402,27 +1401,18 @@ async function abrirCarta(j){
     jg.saldo+=carta.valor;
     jg.transacoes.push({desc:'Carta: '+carta.titulo,valor:carta.valor,tipo:'entrada',data:hoje()});
     j.log.push({msg:`🃏 ${jg.nome}: ${carta.titulo} +R$${carta.valor}`,tipo:'le'});
-    if(meuId===j.ordem[j.turnoIdx]) snd('ganhar');
+    snd('ganhar');
   } else {
     jg.saldo=Math.max(0,jg.saldo-carta.valor);
     jg.transacoes.push({desc:'Carta: '+carta.titulo,valor:carta.valor,tipo:'saida',data:hoje()});
     j.log.push({msg:`🃏 ${jg.nome}: ${carta.titulo} -R$${carta.valor}`,tipo:'ls'});
-    if(meuId===j.ordem[j.turnoIdx]) snd('perder');
+    snd('perder');
   }
-  document.getElementById('mod-carta-b').innerHTML=`
-    <div class="cartam" style="background:${carta.tipo==='ganhar'?'var(--verde-bg)':'var(--vermelho-bg)'}">
-      <div class="cartam-em">${carta.emoji}</div>
-      <div class="cartam-ti" style="color:${carta.tipo==='ganhar'?'var(--verde)':'var(--vermelho)'}">${carta.titulo}</div>
-      <div class="cartam-de">${carta.desc}</div>
-      <div class="cartam-va" style="color:${carta.tipo==='ganhar'?'var(--verde)':'var(--vermelho)'}">${carta.tipo==='ganhar'?'+':'−'} R$ ${carta.valor},00</div>
-    </div>
-    <div class="recibo">
-      <div class="r-l"><span>Jogador</span><span>${jg.avatar} ${jg.nome}</span></div>
-      <div class="r-l"><span>Tipo</span><span>${carta.tipo==='ganhar'?'💰 Receita':'💸 Despesa'}</span></div>
-      <div class="r-l"><span><strong>Novo Saldo</strong></span><span><strong>R$ ${jg.saldo.toFixed(2)}</strong></span></div>
-    </div>`;
   await fbSet('jogos/'+codigoSala,j);jogo=j;
-  am('mod-carta');atualizarUI();
+  toast((carta.tipo==='ganhar'?'🃏 '+carta.titulo+' +R$':'🃏 '+carta.titulo+' -R$')+carta.valor);
+  atualizarUI();
+  // Auto-avança sem precisar de clique do jogador
+  setTimeout(proxTurno, 2800);
 }
 
 // =====================================================
@@ -1434,21 +1424,12 @@ async function abrirImposto(casa,j){
   jg.saldo-=val;
   jg.transacoes.push({desc:'Imposto — '+casa.nome,valor:val,tipo:'saida',data:hoje()});
   j.log.push({msg:`🏛️ ${jg.nome} pagou imposto R$${val}`,tipo:'ls'});
-  if(meuId===j.ordem[j.turnoIdx]) snd('pagar');
-  document.getElementById('mod-carta-b').innerHTML=`
-    <div class="cartam" style="background:var(--amarelo-bg)">
-      <div class="cartam-em">${casa.emoji}</div>
-      <div class="cartam-ti" style="color:var(--amarelo)">${casa.nome}</div>
-      <div class="cartam-de">Todo cidadão paga impostos para manter a cidade funcionando!</div>
-      <div class="cartam-va" style="color:var(--vermelho)">− R$ ${val},00</div>
-    </div>
-    <div class="tag-b">💡 Impostos financiam escolas, ruas e hospitais de BC!</div>
-    <div class="recibo" style="margin-top:.6rem">
-      <div class="r-l"><span>Tipo</span><span>${casa.nome}</span></div>
-      <div class="r-l"><span><strong>Saldo restante</strong></span><span><strong>R$ ${jg.saldo.toFixed(2)}</strong></span></div>
-    </div>`;
+  snd('pagar');
   await fbSet('jogos/'+codigoSala,j);jogo=j;
-  am('mod-carta');atualizarUI();
+  toast('🏛️ '+casa.nome+' − R$'+val);
+  atualizarUI();
+  // Auto-avança sem precisar de clique
+  setTimeout(proxTurno, 2500);
 }
 
 // =====================================================
@@ -1488,7 +1469,7 @@ async function respQuiz(idx){
     </div>`;
   await fbSet('jogos/'+codigoSala,j);jogo=j;
   atualizarUI();
-  setTimeout(()=>{fm('mod-quiz');proxTurno();},3200);
+  setTimeout(()=>{fm('mod-quiz');proxTurno();},2000);
 }
 
 // =====================================================
