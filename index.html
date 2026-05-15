@@ -1446,8 +1446,8 @@ function renderBoard(){
       <text x="${x}" y="${y-1}" text-anchor="middle" dominant-baseline="middle" font-size="${big?20:13}">${emoji}</text>
       <text x="${x}" y="${y+13}" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="800" font-size="5.8" fill="${cor}" opacity=".9">${nome.length>14?nome.slice(0,13)+'…':nome}</text>
       ${tipo==='propriedade'&&propData?`<text x="${x}" y="${y+h/2-3}" text-anchor="middle" font-family="Fredoka One,cursive" font-size="6.5" fill="${cor}">R$${propData.preco}</text>`:''}
-      ${tipo==='propriedade'&&propData?.hotel?`<text x="${x}" y="${y-h/2+11}" text-anchor="middle" font-size="9">🏨</text>`:''}
-      ${tipo==='propriedade'&&!propData?.hotel&&propData?.casas>0?`<text x="${x}" y="${y-h/2+11}" text-anchor="middle" font-size="${6+propData.casas}">${'🏠'.repeat(Math.min(propData.casas,4))}</text>`:''}
+      ${tipo==='propriedade'&&propData?.hotel?`<text x="${x}" y="${y-h/2+11}" text-anchor="middle" font-size="10">🏨</text>`:''}
+      ${tipo==='propriedade'&&!propData?.hotel&&propData?.casas>0?`<text x="${x}" y="${y-h/2+11}" text-anchor="middle" font-size="${7+propData.casas}">${['','🏠','🏢','🏢🏢','🏢🏢🏢'][Math.min(propData.casas,4)]||'🏢'}</text>`:''}
     </g>`;
   });
 
@@ -1546,10 +1546,13 @@ function calcularAluguel(prop, isMonopoly){
   return isMonopoly ? base * 2 : base;
 }
 
+const DEV_NOMES =['Terreno','Kitnet','Studio','Apartamento','Cobertura','Hotel Boutique'];
+const DEV_EMOJIS=['🏗️','🏠','🏢','🏢','🏢','🏨'];
 function devLabel(prop){
-  if(prop.hotel) return '🏨 Hotel';
-  if(prop.casas > 0) return '🏠'.repeat(prop.casas) + ` (${prop.casas} casa${prop.casas>1?'s':''})`;
-  return 'Terreno livre';
+  if(prop.hotel) return '🏨 Hotel Boutique';
+  const n=DEV_NOMES[prop.casas]||'Terreno';
+  const e=DEV_EMOJIS[prop.casas]||'🏗️';
+  return prop.casas>0?`${e} ${n}`:'Terreno livre';
 }
 
 function mostrarEvento(cfg){
@@ -1641,7 +1644,7 @@ function restaurarEvento(){
       break;
     }
     case 'quiz':
-      if(!document.getElementById('mod-quiz')?.classList.contains('vis'))abrirQuiz();
+      abrirQuiz();
       break;
   }
 }
@@ -1667,18 +1670,21 @@ async function comprarDesenvolvimento(id){
   }
   jg.saldo-=custo; j.reciboN++;
   if(isHotel){prop.casas=0;prop.hotel=true;}else{prop.casas++;}
-  jg.transacoes.push({desc:`${isHotel?'Hotel':'Casa '+prop.casas} — ${casa.nome}`,valor:custo,tipo:'saida',data:hoje()});
-  j.log.push({msg:`${isHotel?'🏨':'🏠'} ${jg.nome} construiu ${isHotel?'hotel':'casa '+prop.casas} em ${casa.nome}!`,tipo:'le'});
+  const novoLabel=devLabel(prop);
+  const novoEmoji=prop.hotel?'🏨':DEV_EMOJIS[prop.casas]||'🏠';
+  jg.transacoes.push({desc:`Investimento: ${novoLabel} — ${casa.nome}`,valor:custo,tipo:'saida',data:hoje()});
+  j.log.push({msg:`${novoEmoji} ${jg.nome} investiu em ${novoLabel} em ${casa.nome}!`,tipo:'le'});
   await fbSet('jogos/'+codigoSala,j);jogo=j;
   const novoAluguel=calcularAluguel(prop,temMonopolio(meuId,casa.grupo,j));
   fecharEvento(null);
   setTimeout(()=>mostrarEvento({
-    emoji:isHotel?'🏨':'🏠',
-    titulo:isHotel?'Hotel construído!':'Casa construída!',
-    narrativa:`${casa.nome} agora tem ${devLabel(prop)}. O aluguel subiu para R$ ${novoAluguel},00/visita!`,
+    emoji:novoEmoji,
+    titulo:`${novoLabel} construído!`,
+    narrativa:`${casa.nome} agora é ${novoLabel}. Cada hóspede paga R$ ${novoAluguel},00 de aluguel!`,
     valor:-custo,cor:isHotel?'var(--roxo)':'var(--verde)',
-    tagHtml:'💡 Benfeitorias aumentam o aluguel e seu lucro!',
-    btnTxt:'Ótimo! 💪',btnFn:()=>{atualizarUI();renderBoard();if(jogo?.fase==='processando')proxTurno();}
+    reciboHtml:`<div class="r-t">🏗️ RECIBO DE INVESTIMENTO</div><div class="r-n">Nº ${j.reciboN} — Balneário Camboriú</div><div class="r-l"><span>Investidor</span><span>${jg.avatar} ${escHtml(jg.nome||'')}</span></div><div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div><div class="r-l"><span>Upgrade</span><span>${novoEmoji} ${novoLabel}</span></div><div class="r-l"><span>Valor investido</span><span class="rn">− R$ ${custo},00</span></div><div class="r-l"><span>Novo aluguel</span><span class="rp">+ R$ ${novoAluguel},00/visita</span></div><div class="r-l"><span><strong>Saldo restante</strong></span><span><strong>R$ ${jg.saldo.toFixed(0)},00</strong></span></div>`,
+    tagHtml:'💡 Investir em imóveis gera renda passiva! Quanto mais você constrói, mais recebe.',
+    btnTxt:'Ótimo investimento! 💪',btnFn:()=>{atualizarUI();renderBoard();if(jogo?.fase==='processando')proxTurno();}
   }),320);
   snd('comprar');
 }
@@ -1880,24 +1886,38 @@ function abrirProp(casa,j){
   } else if(prop.dono===j.ordem[j.turnoIdx]){
     // ── Sua propriedade: opções de desenvolvimento ──
     const isMono=temMonopolio(meuId,casa.grupo,j);
-    const aluguelAtual=calcularAluguel(prop,isMono);
-    const podeConstruir=!prop.hotel;
-    const custoConstr=prop.hotel?0:prop.casas>=4?Math.floor(prop.preco*.7):Math.floor(prop.preco*.5);
-    const proxTipo=prop.casas>=4?'Hotel':'Casa '+(prop.casas+1);
-    const aluguelProximo=calcularAluguel({...prop,casas:prop.hotel?prop.casas:prop.casas+1,hotel:prop.casas>=4?true:prop.hotel},isMono);
-    const devHtml=`<div class="dev-strip">Estado atual: <strong style="margin-left:.3rem">${devLabel(prop)}</strong></div>
-      <div class="dev-strip">Aluguel atual: <strong style="color:var(--verde);margin-left:.3rem">R$ ${aluguelAtual},00</strong></div>
-      ${podeConstruir&&meuId===j.ordem[j.turnoIdx]?`<div class="dev-strip">Próximo: ${proxTipo} − R$ ${custoConstr},00 → aluguel R$ ${aluguelProximo},00</div>
-      <button class="ev-btn" style="background:var(--verde);color:#07192e;margin-top:.4rem" onclick="comprarDesenvolvimento(${casa.id})">🏗️ Construir ${proxTipo} − R$ ${custoConstr},00</button>
-      ${prop.casas>0||prop.hotel?`<button class="ev-btn ev-btn2" style="margin-top:.3rem" onclick="venderDesenvolvimento(${casa.id})">🏚️ Vender benfeitoria (R$ ${prop.hotel?Math.floor(prop.preco*.35):Math.floor(prop.preco*.25)},00)</button>`:''}`:
-      `<div class="dev-strip" style="color:var(--amarelo)">🏨 Hotel máximo! Melhor aluguel possível!</div>`}
-      <button class="ev-btn ev-btn2" style="margin-top:.4rem" onclick="venderProp(${casa.id})">💸 Vender terreno ao banco (R$ ${Math.floor(prop.preco*.5)},00)</button>`;
+    const curIdx=prop.hotel?5:prop.casas;
+    const base=prop.aluguel;
+    // Tabela de aluguéis por nível (sem e com monopólio no terreno)
+    const rentTab=[
+      isMono?base*2:base, base*2, base*3, base*5, base*7, base*10
+    ];
+    const ladderHtml=DEV_NOMES.map((nm,i)=>{
+      const ativo=i===curIdx;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.22rem .5rem;border-radius:6px;font-size:.78rem;${ativo?`background:${casa.cor}33;border:1px solid ${casa.cor};font-weight:800`:'opacity:.55'}">
+        <span>${DEV_EMOJIS[i]} ${nm}</span>
+        <span style="color:${ativo?'var(--verde)':'inherit'}">R$ ${rentTab[i]},00/visita</span>
+      </div>`;
+    }).join('');
+    const podeConstruir=!prop.hotel&&meuId===j.ordem[j.turnoIdx];
+    const custoConstr=prop.casas>=4?Math.floor(prop.preco*.7):Math.floor(prop.preco*.5);
+    const proxNome=DEV_NOMES[curIdx+1]||'Hotel Boutique';
+    const proxEmoji=DEV_EMOJIS[curIdx+1]||'🏨';
+    const retornoBenf=prop.hotel?Math.floor(prop.preco*.35):Math.floor(prop.preco*.25);
+    const buildBtn=podeConstruir
+      ?`<button class="ev-btn" style="background:var(--verde);color:#07192e;margin-top:.5rem;font-size:.82rem" onclick="comprarDesenvolvimento(${casa.id})">🏗️ Investir: ${proxEmoji} ${proxNome} — R$ ${custoConstr},00</button>
+        ${prop.casas>0||prop.hotel?`<button class="ev-btn ev-btn2" style="margin-top:.3rem;font-size:.78rem" onclick="venderDesenvolvimento(${casa.id})">🏚️ Demolir e receber R$ ${retornoBenf},00</button>`:''}`
+      :`<div style="color:var(--amarelo);font-weight:700;text-align:center;margin:.4rem 0;font-size:.82rem">🏆 Hotel Boutique — aluguel máximo!</div>
+        <button class="ev-btn ev-btn2" style="margin-top:.3rem;font-size:.78rem" onclick="venderDesenvolvimento(${casa.id})">🏚️ Demolir hotel (R$ ${retornoBenf},00)</button>`;
+    const devHtml=`<div style="margin:.2rem 0 .4rem;display:grid;gap:2px">${ladderHtml}</div>
+      ${buildBtn}
+      <button class="ev-btn ev-btn2" style="margin-top:.4rem;font-size:.78rem" onclick="venderProp(${casa.id})">💸 Vender imóvel ao banco (R$ ${Math.floor(prop.preco*.5)},00)</button>`;
     mostrarEvento({
       emoji:casa.emoji,titulo:'Sua propriedade!',
-      narrativa:`${casa.nome} é sua! ${isMono?'⭐ MONOPÓLIO! Aluguel dobrado!':'Compre todos do grupo para dobrar o aluguel.'}`,
+      narrativa:`${casa.nome} é sua! ${isMono?'⭐ MONOPÓLIO — aluguel dobrado no terreno!':'Complete o grupo para dobrar o aluguel base.'}`,
       cor:casa.cor,
       devHtml,
-      btnTxt:'✅ Ok, avançar turno',btnFn:proxTurno
+      btnTxt:'✅ Avançar turno',btnFn:proxTurno
     });
 
   } else {
@@ -1907,7 +1927,7 @@ function abrirProp(casa,j){
     const mono=temMonopolio(prop.dono,casa.grupo,j);
     const aluguelReal=calcularAluguel(prop,mono);
     aluguelPend={prop,dono,jg,casa,j,aluguel:aluguelReal,mono};
-    const devInfo=prop.hotel?'🏨 Hotel':prop.casas>0?'🏠'.repeat(prop.casas)+`(${prop.casas} casa${prop.casas>1?'s':''})`:'Terreno';
+    const devInfo=devLabel(prop);
     const narr=`${dono.avatar} ${dono.nome} é dono de ${casa.nome}! ${mono?'⭐ Tem o grupo todo — aluguel em dobro! ':''} ${prop.hotel?'Hotel de luxo! ':''}Você precisa pagar a diária.`;
     if(meuId===j.ordem[j.turnoIdx]){
       snd(mono?'perder':'click');
@@ -2084,48 +2104,61 @@ function abrirQuiz(){
   const jgAtual=jogo?.jogadores?.[jogo?.ordem?.[jogo?.turnoIdx]];
   const vistos=jgAtual?.quizVistos||[];
   const disponiveis=QUIZ.map((_,i)=>i).filter(i=>!vistos.includes(i));
-  // Quando todas já foram vistas, recomeçar o ciclo
   const pool=disponiveis.length>0?disponiveis:QUIZ.map((_,i)=>i);
   const sorteio=pool[Math.floor(Math.random()*pool.length)];
   quizAtivo={...QUIZ[sorteio],idx:sorteio};
-  const restante=disponiveis.length>0?disponiveis.length-1:QUIZ.length-1;
-  document.getElementById('mod-quiz-b').innerHTML=`
-    <div class="tag-b">🎓 EF04MA25 — Desafio Financeiro! Responda e ganhe bônus!${restante<QUIZ.length?` <span style="opacity:.6;font-size:.8em">(${QUIZ.length-restante-1>0?QUIZ.length-restante-1+' já respondidas':'primeira vez nessa pergunta'})</span>`:''}</div>
-    <div class="qp">${quizAtivo.p}</div>
-    <div class="qops">${quizAtivo.ops.map((op,i)=>`
-      <button class="qop" id="qop${i}" onclick="respQuiz(${i})">${['A','B','C','D'][i]}) ${op}</button>`).join('')}</div>
-    <div id="qfb"></div>`;
-  am('mod-quiz');
+  const penalty=Math.floor(quizAtivo.bonus*.5);
+  const optsHtml=quizAtivo.ops.map((op,i)=>
+    `<button class="qop quiz-ev-opt" id="qopt${i}" onclick="respQuiz(${i})" style="margin:.18rem 0">
+      <strong>${['A','B','C','D'][i]})</strong> ${op}
+    </button>`).join('');
+  mostrarEvento({
+    emoji:'🎓',titulo:'Desafio Financeiro!',
+    narrativa:quizAtivo.p,
+    cor:'#00E5A0',
+    devHtml:`<div class="qops" style="margin:.35rem 0">${optsHtml}</div><div id="quiz-fb"></div>`,
+    tagHtml:`✅ Acerto: <strong>+ R$ ${quizAtivo.bonus},00</strong> &nbsp;·&nbsp; ❌ Erro: <strong>− R$ ${penalty},00</strong>`,
+  });
 }
 
-async function respQuiz(idx){
+async function respQuiz(escolha){
   if(!quizAtivo)return;
-  document.querySelectorAll('.qop').forEach(b=>b.disabled=true);
-  const ok=idx===quizAtivo.c;
-  document.getElementById('qop'+quizAtivo.c).classList.add('ok');
-  if(!ok)document.getElementById('qop'+idx).classList.add('err');
+  // Travar todos os botões imediatamente
+  document.querySelectorAll('.quiz-ev-opt').forEach(b=>b.disabled=true);
+  const ok=escolha===quizAtivo.c;
+  const penalty=Math.floor(quizAtivo.bonus*.5);
+  // Colorir certo e errado
+  const corrBtn=document.getElementById('qopt'+quizAtivo.c);
+  const chosenBtn=document.getElementById('qopt'+escolha);
+  if(corrBtn)corrBtn.classList.add('ok');
+  if(!ok&&chosenBtn)chosenBtn.classList.add('err');
+  // Feedback imediato no card
+  const fbEl=document.getElementById('quiz-fb');
+  if(fbEl)fbEl.innerHTML=`<div class="qfb" style="background:${ok?'var(--verde-bg)':'var(--vermelho-bg)'};color:${ok?'var(--verde)':'var(--vermelho)'};margin-top:.5rem">
+    ${ok?'🎉 <strong>Correto!</strong>':'❌ <strong>Errou!</strong>'} ${quizAtivo.exp}
+    <br><strong style="font-size:1rem">${ok?`+R$ ${quizAtivo.bonus},00`:`−R$ ${penalty},00`}</strong>
+  </div>`;
+  // Mostrar valor ganho/perdido no card
+  const valEl=document.getElementById('ev-valor');
+  if(valEl){valEl.style.display='block';valEl.className=ok?'ganho':'perda';valEl.textContent=ok?`+ R$ ${quizAtivo.bonus},00`:`− R$ ${penalty},00`;}
+  // Gravar no Firebase
   const j=JSON.parse(JSON.stringify(jogo));
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
-  // Registrar pergunta como vista para não repetir
   if(!jg.quizVistos)jg.quizVistos=[];
-  if(quizAtivo.idx!==undefined&&!jg.quizVistos.includes(quizAtivo.idx))
-    jg.quizVistos.push(quizAtivo.idx);
+  if(quizAtivo.idx!==undefined&&!jg.quizVistos.includes(quizAtivo.idx))jg.quizVistos.push(quizAtivo.idx);
   if(ok){
     jg.saldo+=quizAtivo.bonus;
-    jg.transacoes.push({desc:'Quiz correto',valor:quizAtivo.bonus,tipo:'entrada',data:hoje()});
+    jg.transacoes.push({desc:'Quiz: '+quizAtivo.p.slice(0,35),valor:quizAtivo.bonus,tipo:'entrada',data:hoje()});
     j.log.push({msg:`🎓 ${jg.nome} acertou o quiz! +R$${quizAtivo.bonus}`,tipo:'le'});
     snd('quiz_ok');
   } else {
-    j.log.push({msg:`🎓 ${jg.nome} errou o quiz.`,tipo:'lv'});
+    jg.saldo=Math.max(0,jg.saldo-penalty);
+    jg.transacoes.push({desc:'Quiz errado',valor:penalty,tipo:'saida',data:hoje()});
+    j.log.push({msg:`🎓 ${jg.nome} errou o quiz. -R$${penalty}`,tipo:'ls'});
     snd('quiz_err');
   }
-  document.getElementById('qfb').innerHTML=`
-    <div class="qfb" style="background:${ok?'var(--verde-bg)':'var(--vermelho-bg)'};color:${ok?'var(--verde)':'var(--vermelho)'}">
-      ${ok?'🎉 <strong>Correto!':'❌ <strong>Errou.'} </strong><br>${quizAtivo.exp}${ok?`<br><strong>+R$ ${quizAtivo.bonus},00!</strong>`:''}
-    </div>`;
-  await fbSet('jogos/'+codigoSala,j);jogo=j;
-  atualizarUI();
-  setTimeout(()=>{fm('mod-quiz');proxTurno();},2000);
+  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
+  setTimeout(()=>fecharEvento(proxTurno),2600);
 }
 
 // =====================================================
