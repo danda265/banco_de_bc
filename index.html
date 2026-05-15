@@ -1297,7 +1297,7 @@ async function hostIniciar(){
   const jogoInit={
     ordem:jogs.map(j=>j.id),jogadores:jogadoresObj,
     turnoIdx:0,turno:1,reciboN:1000,props,
-    log:[{msg:'🏁 Jogo iniciado! Quem completar 3 voltas primeiro vence!',tipo:'lv'}],
+    log:[{msg:'🏁 Jogo iniciado! Quem completar 5 voltas primeiro vence!',tipo:'lv'}],
     fase:'aguardando-dado',eventoAtual:null,
   };
   await fbSet('jogos/'+codigoSala,jogoInit);
@@ -1382,7 +1382,7 @@ function atualizarUI(){
   if(ativos.length<=1&&!document.getElementById('tela-fim').classList.contains('active')){
     encerrar();return;
   }
-  if(jogo.ordem.some(id=>jogo.jogadores[id]?.voltas>=3)&&
+  if(jogo.ordem.some(id=>jogo.jogadores[id]?.voltas>=5)&&
      !document.getElementById('tela-fim').classList.contains('active')){
     encerrar();
   }
@@ -1429,7 +1429,7 @@ function renderBoard(){
   <text x="350" y="350" text-anchor="middle" font-family="Fredoka One,cursive" font-size="26" fill="#3DB8FF" opacity=".9">BALNEÁRIO!</text>
   <text x="350" y="372" text-anchor="middle" font-family="Nunito,sans-serif" font-size="10" fill="#00E5A0" font-weight="700">💰 EDUCAÇÃO FINANCEIRA</text>
   <text x="350" y="388" text-anchor="middle" font-family="Nunito,sans-serif" font-size="8.5" fill="#3DB8FF" opacity=".6">Balneário Camboriú • SC • BNCC</text>
-  <text x="350" y="404" text-anchor="middle" font-family="Nunito,sans-serif" font-size="9.5" fill="#FFD23F" opacity=".8">🏆 3 VOLTAS PARA VENCER</text>
+  <text x="350" y="404" text-anchor="middle" font-family="Nunito,sans-serif" font-size="9.5" fill="#FFD23F" opacity=".8">🏆 5 VOLTAS PARA VENCER</text>
   <text x="350" y="420" text-anchor="middle" font-family="Nunito,sans-serif" font-size="8" fill="#B08FFF" opacity=".7">⭐ GRUPO COMPLETO = ALUGUEL 2×</text>`;
 
   CASAS.forEach(c=>{
@@ -1669,6 +1669,13 @@ async function comprarDesenvolvimento(id){
   const casa=CASAS.find(c=>c.id===id);
   if(!prop||prop.dono!==meuId){toast('Você não é dono!');return;}
   if(prop.hotel){toast('🏨 Máximo! Já tem hotel.');return;}
+  // Banco Imobiliário: deve ter o grupo inteiro para construir
+  if(!temMonopolio(meuId,casa.grupo,j)){
+    mostrarEvento({emoji:'⭐',titulo:'Grupo incompleto!',
+      narrativa:`Para construir em ${casa.nome} você precisa ter TODOS os imóveis do grupo "${grupoL(casa.grupo)}" primeiro. Complete o grupo e o aluguel dobra automaticamente!`,
+      cor:'var(--amarelo)',btnTxt:'Entendido!',btnFn:null});
+    return;
+  }
   const isHotel=prop.casas>=4;
   const custo=isHotel?Math.floor(prop.preco*.7):Math.floor(prop.preco*.5);
   if(jg.saldo<custo){
@@ -1876,7 +1883,7 @@ function temMonopolio(playerId, grupo, j){
   return GRUPOS[grupo].every(id=>props.includes(id));
 }
 
-function abrirProp(casa,j){
+function abrirProp(casa,j,fromSidebar=false){
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
   const prop=j.props?.[casa.id]||j.props?.[String(casa.id)];
   if(!prop){logErro(`abrirProp: prop id=${casa.id} não encontrada. Keys presentes: ${Object.keys(j.props||{}).join(',')}`);setTimeout(proxTurno,500);return;}
@@ -1913,25 +1920,31 @@ function abrirProp(casa,j){
         <span style="color:${ativo?'var(--verde)':'inherit'}">R$ ${rentTab[i]},00/visita</span>
       </div>`;
     }).join('');
-    const podeConstruir=!prop.hotel&&meuId===j.ordem[j.turnoIdx];
+    const podeConstruir=!prop.hotel&&ehMinhaVez()&&isMono;
+    const semMono=!isMono;
     const custoConstr=prop.casas>=4?Math.floor(prop.preco*.7):Math.floor(prop.preco*.5);
     const proxNome=DEV_NOMES[curIdx+1]||'Hotel Boutique';
     const proxEmoji=DEV_EMOJIS[curIdx+1]||'🏨';
     const retornoBenf=prop.hotel?Math.floor(prop.preco*.35):Math.floor(prop.preco*.25);
-    const buildBtn=podeConstruir
-      ?`<button class="ev-btn" style="background:var(--verde);color:#07192e;margin-top:.5rem;font-size:.82rem" onclick="comprarDesenvolvimento(${casa.id})">🏗️ Investir: ${proxEmoji} ${proxNome} — R$ ${custoConstr},00</button>
-        ${prop.casas>0||prop.hotel?`<button class="ev-btn ev-btn2" style="margin-top:.3rem;font-size:.78rem" onclick="venderDesenvolvimento(${casa.id})">🏚️ Demolir e receber R$ ${retornoBenf},00</button>`:''}`
-      :`<div style="color:var(--amarelo);font-weight:700;text-align:center;margin:.4rem 0;font-size:.82rem">🏆 Hotel Boutique — aluguel máximo!</div>
-        <button class="ev-btn ev-btn2" style="margin-top:.3rem;font-size:.78rem" onclick="venderDesenvolvimento(${casa.id})">🏚️ Demolir hotel (R$ ${retornoBenf},00)</button>`;
+    const buildBtn=semMono
+      ?`<div style="background:var(--amarelo)18;border:1px solid var(--amarelo)55;border-radius:8px;padding:.5rem .6rem;text-align:center;font-size:.78rem;color:var(--amarelo);margin-top:.4rem">
+          ⭐ Para construir, complete o grupo<br><strong>${grupoL(casa.grupo)}</strong> comprando todos os imóveis!
+        </div>`
+      : podeConstruir
+        ?`<button class="ev-btn" style="background:var(--verde);color:#07192e;margin-top:.5rem;font-size:.82rem" onclick="comprarDesenvolvimento(${casa.id})">🏗️ Construir: ${proxEmoji} ${proxNome} — R$ ${custoConstr},00</button>
+          ${prop.casas>0||prop.hotel?`<button class="ev-btn ev-btn2" style="margin-top:.3rem;font-size:.78rem" onclick="venderDesenvolvimento(${casa.id})">🏚️ Demolir e receber R$ ${retornoBenf},00</button>`:''}`
+        :`<div style="color:var(--amarelo);font-weight:700;text-align:center;margin:.4rem 0;font-size:.82rem">🏆 Hotel Boutique — aluguel máximo!</div>
+          <button class="ev-btn ev-btn2" style="margin-top:.3rem;font-size:.78rem" onclick="venderDesenvolvimento(${casa.id})">🏚️ Demolir hotel (R$ ${retornoBenf},00)</button>`;
     const devHtml=`<div style="margin:.2rem 0 .4rem;display:grid;gap:2px">${ladderHtml}</div>
       ${buildBtn}
       <button class="ev-btn ev-btn2" style="margin-top:.4rem;font-size:.78rem" onclick="venderProp(${casa.id})">💸 Vender imóvel ao banco (R$ ${Math.floor(prop.preco*.5)},00)</button>`;
     mostrarEvento({
-      emoji:casa.emoji,titulo:'Sua propriedade!',
-      narrativa:`${casa.nome} é sua! ${isMono?'⭐ MONOPÓLIO — aluguel dobrado no terreno!':'Complete o grupo para dobrar o aluguel base.'}`,
+      emoji:casa.emoji,titulo:'Minha propriedade!',
+      narrativa:`${casa.nome} é sua! ${isMono?'⭐ MONOPÓLIO — aluguel dobrado! Agora pode construir!':'Complete o grupo '+grupoL(casa.grupo)+' para dobrar o aluguel e construir.'}`,
       cor:casa.cor,
       devHtml,
-      btnTxt:'✅ Avançar turno',btnFn:proxTurno
+      btnTxt:fromSidebar?'✅ Fechar':'✅ Avançar turno',
+      btnFn:fromSidebar?null:proxTurno
     });
 
   } else {
@@ -2229,7 +2242,7 @@ async function proxTurno(){
     const j=JSON.parse(JSON.stringify(jogo));
     const ativos=j.ordem.filter(id=>j.jogadores[id]?.ativo);
     if(ativos.length<=1){encerrar();return;}
-    if(j.ordem.some(id=>j.jogadores[id]?.voltas>=3)){encerrar();return;}
+    if(j.ordem.some(id=>j.jogadores[id]?.voltas>=5)){encerrar();return;}
     let prox=(j.turnoIdx+1)%j.ordem.length,t=0;
     while(!j.jogadores[j.ordem[prox]]?.ativo&&t++<j.ordem.length)
       prox=(prox+1)%j.ordem.length;
@@ -2297,6 +2310,14 @@ function fecharSb(){
   document.getElementById('sidebar').classList.remove('aberta');
   document.getElementById('sb-overlay').classList.remove('vis');
 }
+// Abre card de evolução do imóvel a partir da aba Imóveis (sem avançar turno)
+function verMeuImovel(id){
+  if(!ehMinhaVez()){return;}
+  const casa=CASAS.find(c=>c.id===id);
+  if(!casa)return;
+  fecharSb();
+  setTimeout(()=>abrirProp(casa,JSON.parse(JSON.stringify(jogo)),true),150);
+}
 
 function renderAba(t){
   const body=document.getElementById('sb-body');
@@ -2325,7 +2346,7 @@ function renderAba(t){
             <div class="pjc-nome">${escHtml(jg.nome||'')}${isEu?' <span style="font-size:.6rem;color:var(--azul)">(você)</span>':''}
             ${!isEu&&jg.online===false?'<span class="disco-badge aguardando" title="Desconectado — aguardando reconexão">⚡ desconectado</span>':''}</div>
             <div class="pjc-saldo" style="color:${jg.cor}">R$ ${jg.saldo.toFixed(0)} <span style="font-size:.6rem;color:var(--cinza2)">(+R$${(patrimonio-jg.saldo).toFixed(0)} imóveis)</span></div>
-            <div class="pjc-pos">📍 ${CASAS[jg.posicao]?.nome||'—'} • ${jg.voltas}/3 voltas</div>
+            <div class="pjc-pos">📍 ${CASAS[jg.posicao]?.nome||'—'} • ${jg.voltas}/5 voltas</div>
           </div>
           ${vez?'<span class="vez-tag">VEZ</span>':''}
         </div>
@@ -2375,8 +2396,9 @@ function renderAba(t){
             <div class="im-nome">${casa.emoji} ${casa.nome}${isMono?' <span style="color:var(--amarelo)">⭐</span>':''}</div>
             <div class="im-d">${grupoL(casa.grupo)} • ${devLabel(prop)} • R$${aluguelAtual}/vis.</div>
           </div>
-          <div style="text-align:right">
+          <div style="text-align:right;display:flex;flex-direction:column;gap:3px;align-items:flex-end">
             <div class="im-v" style="color:${casa.cor}">R$${prop.preco}</div>
+            ${minhaVez?`<button class="im-sell" style="background:var(--verde);color:#07192e" onclick="verMeuImovel(${casa.id})">🏗️ Desenvolver</button>`:''}
             ${minhaVez?`<button class="im-sell" onclick="venderProp(${casa.id})">🏚️ R$${Math.floor(prop.preco*.5)}</button>`:''}
           </div>
         </div>`;
