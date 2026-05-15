@@ -840,24 +840,138 @@ const CARTAS = [
 // QUIZ EXPANDIDO (18 perguntas)
 // =====================================================
 const QUIZ = [
-  {p:'Se você tem R$ 50,00 e gasta R$ 23,00, quanto sobra?',ops:['R$ 27,00','R$ 37,00','R$ 17,00','R$ 47,00'],c:0,exp:'50 − 23 = 27. Sobram R$ 27,00!',bonus:100},
-  {p:'O que é uma DESPESA?',ops:['Dinheiro que você ganha','Dinheiro que você gasta','Seu salário','Seu imóvel'],c:1,exp:'Despesa é o dinheiro que SAI do seu bolso.',bonus:80},
-  {p:'Quer comprar brinquedo de R$80. Tem R$30. Quanto falta?',ops:['R$ 60,00','R$ 40,00','R$ 50,00','R$ 70,00'],c:2,exp:'80 − 30 = 50. Faltam R$ 50,00!',bonus:100},
-  {p:'O que é POUPANÇA?',ops:['Gastar tudo','Guardar para o futuro','Pedir emprestado','Pagar impostos'],c:1,exp:'Poupança é guardar dinheiro para usar no futuro!',bonus:80},
-  {p:'João ganhou R$200 e gastou R$150. Qual é o SALDO?',ops:['R$ 350,00','R$ 150,00','R$ 50,00','R$ 200,00'],c:2,exp:'Saldo = 200 − 150 = R$ 50,00.',bonus:120},
-  {p:'Qual é a moeda usada no Brasil?',ops:['Dólar','Peso','Real','Euro'],c:2,exp:'O dinheiro do Brasil é o REAL (R$), criado em 1994!',bonus:60},
-  {p:'3 notas de R$10 + 2 moedas de R$1 = quanto?',ops:['R$ 30,00','R$ 32,00','R$ 28,00','R$ 35,00'],c:1,exp:'3×10=30 + 2×1=2. Total: R$32,00!',bonus:100},
-  {p:'O que é LUCRO?',ops:['Perder dinheiro','Gastar tudo','Ganhar mais do que gastou','Pedir emprestado'],c:2,exp:'Lucro é vender por mais do que pagou!',bonus:80},
-  {p:'Ana tinha R$100, comprou livro R$35 e lanche R$12. Sobrou?',ops:['R$ 47,00','R$ 53,00','R$ 63,00','R$ 43,00'],c:1,exp:'100 − 35 − 12 = R$ 53,00!',bonus:120},
-  {p:'O que é RECEITA?',ops:['Uma comida','Dinheiro que entra','Uma dívida','Preço de produto'],c:1,exp:'Receita é todo dinheiro que ENTRA (salário, vendas...)',bonus:80},
-  {p:'Maria tem R$15. Comprou sorvete R$7. Quanto sobrou?',ops:['R$ 8,00','R$ 9,00','R$ 7,00','R$ 6,00'],c:0,exp:'15 − 7 = 8. Sobram R$ 8,00!',bonus:60},
-  {p:'O que é IMPOSTO?',ops:['Um brinquedo caro','Dinheiro que o cidadão paga ao governo','Um banco','Um empréstimo'],c:1,exp:'Imposto é o que pagamos para o governo manter escolas, ruas e hospitais!',bonus:80},
-  {p:'Pedro tem R$500. Quer guardar 20%. Quanto guardará?',ops:['R$ 80,00','R$ 100,00','R$ 120,00','R$ 150,00'],c:1,exp:'20% de 500 = 500 × 0,2 = R$ 100,00!',bonus:120},
-  {p:'O que são JUROS?',ops:['Lucro de imóvel','Custo extra por usar dinheiro emprestado','Desconto no preço','Tipo de imposto'],c:1,exp:'Juros é o valor cobrado por quem empresta dinheiro. Por isso é importante não se endividar!',bonus:100},
-  {p:'Você tem R$300. Comprou 3 itens a R$80. Sobrou?',ops:['R$ 60,00','R$ 80,00','R$ 40,00','R$ 100,00'],c:0,exp:'3 × 80 = 240. 300 − 240 = R$ 60,00!',bonus:110},
-  {p:'O que significa "parcelar" uma compra?',ops:['Pagar tudo de uma vez','Pagar em várias vezes','Ganhar desconto','Devolver o produto'],c:1,exp:'Parcelar é dividir o pagamento em partes. Mas cuidado: geralmente tem juros!',bonus:80},
-  {p:'Qual é a melhor decisão financeira?',ops:['Gastar todo salário','Guardar parte e gastar o resto','Pegar empréstimo sempre','Não trabalhar'],c:1,exp:'Guardar parte do que ganha é a base da saúde financeira!',bonus:100},
-  {p:'Numa loja com 10% de desconto, quanto paga por R$10?',ops:['R$ 9,00','R$ 8,00','R$ 11,00','R$ 7,00'],c:0,exp:'10% de R$10 = R$1 de desconto. Você paga R$9,00!',bonus:80},
+  // ── Operações com dinheiro ───────────────────────────────────────
+  {p:'Você tem R$ 50,00 e gasta R$ 23,00. Quanto sobra?',
+   ops:['R$ 27,00','R$ 37,00','R$ 17,00','R$ 47,00'],c:0,
+   exp:'50 − 23 = 27. Ficam R$ 27,00 no bolso!',bonus:80},
+
+  {p:'João ganhou R$ 200,00 e gastou R$ 150,00. Qual é o saldo?',
+   ops:['R$ 350,00','R$ 150,00','R$ 50,00','R$ 200,00'],c:2,
+   exp:'Saldo = receita − despesa = 200 − 150 = R$ 50,00.',bonus:80},
+
+  {p:'3 notas de R$ 20,00 + 2 moedas de R$ 1,00. Qual o total?',
+   ops:['R$ 60,00','R$ 62,00','R$ 64,00','R$ 58,00'],c:1,
+   exp:'3 × 20 = 60 + 2 × 1 = 2. Total: R$ 62,00!',bonus:80},
+
+  {p:'Ana tinha R$ 100,00, comprou livro por R$ 35,00 e lanche por R$ 12,00. Quanto sobrou?',
+   ops:['R$ 47,00','R$ 53,00','R$ 63,00','R$ 43,00'],c:1,
+   exp:'100 − 35 − 12 = R$ 53,00 sobraram!',bonus:100},
+
+  {p:'Um sorvete no calçadão de BC custa R$ 8,00. Com R$ 35,00, quantos você compra?',
+   ops:['5','4','3','6'],c:1,
+   exp:'35 ÷ 8 = 4,37. Dá para comprar 4 sorvetes — e sobram R$ 3,00!',bonus:100},
+
+  {p:'Você quer comprar um tênis de R$ 120,00. Tem R$ 75,00. Quanto ainda falta?',
+   ops:['R$ 55,00','R$ 45,00','R$ 35,00','R$ 50,00'],c:1,
+   exp:'120 − 75 = R$ 45,00. Continue poupando!',bonus:80},
+
+  // ── Conceitos básicos ────────────────────────────────────────────
+  {p:'O que é uma DESPESA?',
+   ops:['Dinheiro que você ganha','Dinheiro que você gasta','Seu salário','Seu saldo bancário'],c:1,
+   exp:'Despesa é todo dinheiro que SAI do bolso: compras, contas, serviços...',bonus:80},
+
+  {p:'O que é RECEITA (ou renda)?',
+   ops:['Um prato de comida','Dinheiro que entra','Uma dívida','Preço de produto'],c:1,
+   exp:'Receita é todo dinheiro que ENTRA: salário, mesada, venda de produtos...',bonus:80},
+
+  {p:'O que é POUPANÇA?',
+   ops:['Gastar tudo agora','Guardar dinheiro para o futuro','Pedir emprestado','Pagar impostos'],c:1,
+   exp:'Poupança é guardar parte do que você ganha para usar no futuro!',bonus:80},
+
+  {p:'O que é LUCRO?',
+   ops:['Perder dinheiro','O preço que você pagou','Ganhar mais do que gastou','Pedir emprestado'],c:2,
+   exp:'Lucro = valor de venda − custo. Vender por mais do que pagou é lucro!',bonus:80},
+
+  {p:'O que são JUROS?',
+   ops:['Desconto no preço','Custo extra por usar dinheiro emprestado','Tipo de imposto','Salário do banco'],c:1,
+   exp:'Juros é o valor cobrado por quem empresta dinheiro. Dívidas crescem com juros — cuidado!',bonus:100},
+
+  {p:'Qual é a moeda oficial do Brasil?',
+   ops:['Dólar','Peso','Real','Euro'],c:2,
+   exp:'O dinheiro do Brasil é o REAL (R$), criado em 1994 para controlar a inflação!',bonus:60},
+
+  // ── Porcentagem ──────────────────────────────────────────────────
+  {p:'Quanto é 10% de R$ 200,00?',
+   ops:['R$ 10,00','R$ 20,00','R$ 30,00','R$ 200,00'],c:1,
+   exp:'10% = 10 ÷ 100 = 0,1 × 200 = R$ 20,00!',bonus:100},
+
+  {p:'Produto custa R$ 80,00 com 25% de desconto. Qual o preço final?',
+   ops:['R$ 70,00','R$ 55,00','R$ 60,00','R$ 65,00'],c:2,
+   exp:'25% de 80 = R$ 20. 80 − 20 = R$ 60,00!',bonus:120},
+
+  {p:'Pedro ganha R$ 500,00 e quer guardar 20%. Quanto poupará?',
+   ops:['R$ 80,00','R$ 100,00','R$ 120,00','R$ 150,00'],c:1,
+   exp:'20% de 500 = 500 × 0,2 = R$ 100,00 poupados!',bonus:100},
+
+  {p:'Você tem R$ 300,00 e comprou 3 itens de R$ 80,00 cada. Sobrou quanto?',
+   ops:['R$ 60,00','R$ 80,00','R$ 40,00','R$ 100,00'],c:0,
+   exp:'3 × 80 = 240. 300 − 240 = R$ 60,00 sobraram!',bonus:100},
+
+  {p:'Num produto de R$ 90,00 com 10% de desconto, você paga quanto?',
+   ops:['R$ 81,00','R$ 80,00','R$ 85,00','R$ 79,00'],c:0,
+   exp:'10% de 90 = R$ 9 de desconto. 90 − 9 = R$ 81,00!',bonus:100},
+
+  // ── Decisões inteligentes ────────────────────────────────────────
+  {p:'Qual a melhor atitude para quem quer ter dinheiro no futuro?',
+   ops:['Gastar todo salário todo mês','Guardar parte e gastar o resto com planejamento','Pegar empréstimo sempre que quiser','Nunca gastar nada'],c:1,
+   exp:'Guardar parte do que ganha regularmente é a base da vida financeira saudável!',bonus:100},
+
+  {p:'O que significa PARCELAR uma compra?',
+   ops:['Pagar tudo de uma vez com desconto','Pagar em várias vezes, geralmente com juros','Devolver o produto','Trocar por outro produto'],c:1,
+   exp:'Parcelar divide o pagamento em partes — mas cuidado: quase sempre tem juros embutidos!',bonus:80},
+
+  {p:'Por que ter uma RESERVA DE EMERGÊNCIA é importante?',
+   ops:['Para gastar em viagens de luxo','Para pagar imprevistos sem precisar se endividar','Para comprar mais coisas','Para emprestar aos amigos'],c:1,
+   exp:'Imprevistos acontecem. Quem tem reserva paga sem precisar de empréstimo com juros altos!',bonus:100},
+
+  // ── Impostos ─────────────────────────────────────────────────────
+  {p:'O que é IMPOSTO?',
+   ops:['Um brinquedo caro','Dinheiro pago ao governo para financiar serviços públicos','Um tipo de banco','Um empréstimo'],c:1,
+   exp:'Impostos financiam escolas, hospitais, praias limpas e as ruas de BC!',bonus:80},
+
+  {p:'O IPTU é um imposto cobrado sobre o quê?',
+   ops:['Compras de roupa','Propriedades: casas, apartamentos e terrenos','Salário mensal','Viagens internacionais'],c:1,
+   exp:'IPTU = Imposto Predial e Territorial Urbano. Todo proprietário de imóvel paga anualmente!',bonus:100},
+
+  // ── Renda passiva e investimentos ────────────────────────────────
+  {p:'Quem aluga um apartamento em BC recebe que tipo de renda?',
+   ops:['Salário','Comissão de vendas','Renda passiva (aluguel)','Mesada'],c:2,
+   exp:'Renda passiva é dinheiro que entra mesmo sem trabalhar diretamente — como aluguéis!',bonus:100},
+
+  {p:'O que é RENDA PASSIVA?',
+   ops:['Dinheiro ganho trabalhando todo dia','Dinheiro que entra mesmo quando você não trabalha','Dívida que cresce sozinha','Imposto automático'],c:1,
+   exp:'Renda passiva: aluguel, dividendos de ações, royalties. O dinheiro trabalha por você!',bonus:100},
+
+  {p:'Por que imóveis bem localizados em BC tendem a se valorizar?',
+   ops:['Porque são feitos de ouro','Alta demanda de turistas + poucos terrenos disponíveis','Porque o prefeito ordena','Pelo clima frio da cidade'],c:1,
+   exp:'Oferta e demanda: muita gente quer morar em BC e há pouco espaço → preço sobe!',bonus:120},
+
+  // ── Empreendedorismo ─────────────────────────────────────────────
+  {p:'Um sorvete custa R$ 3,00 para fazer e você vende por R$ 8,00. Qual é o lucro por unidade?',
+   ops:['R$ 3,00','R$ 5,00','R$ 8,00','R$ 11,00'],c:1,
+   exp:'Lucro = venda − custo = 8 − 3 = R$ 5,00 por sorvete!',bonus:100},
+
+  {p:'Uma barraquinha no calçadão de BC vendeu 15 pipas a R$ 12,00 cada. Qual a receita total?',
+   ops:['R$ 150,00','R$ 180,00','R$ 200,00','R$ 170,00'],c:1,
+   exp:'15 × 12 = R$ 180,00 de receita bruta!',bonus:110},
+
+  // ── Banco e crédito ──────────────────────────────────────────────
+  {p:'O que um BANCO faz?',
+   ops:['Vende roupas','Guarda, empresta e movimenta dinheiro','Só cobra impostos','Ensina matemática'],c:1,
+   exp:'Banco guarda seu dinheiro com segurança, empresta para quem precisa e facilita pagamentos!',bonus:80},
+
+  {p:'Usar cartão de crédito sem controle pode causar o quê?',
+   ops:['Aumento de salário automático','Dívidas que crescem com juros altíssimos','Desconto em todas as compras','Poupança automática'],c:1,
+   exp:'Os juros do cartão podem passar de 300% ao ano! Use com planejamento e pague a fatura completa.',bonus:100},
+
+  {p:'O que é INFLAÇÃO?',
+   ops:['Queda geral dos preços','Aumento geral dos preços ao longo do tempo','Tipo de imposto federal','Nome do dólar no Brasil'],c:1,
+   exp:'Inflação faz o dinheiro valer menos: R$ 100,00 hoje compra mais do que R$ 100,00 daqui a 1 ano!',bonus:120},
+
+  // ── Orçamento pessoal ────────────────────────────────────────────
+  {p:'Qual das opções representa um ORÇAMENTO EQUILIBRADO?',
+   ops:['Receita < Despesa','Receita = Despesa (sem sobras)','Receita > Despesa (sobra para poupar)','Gastar tudo e depois ver'],c:2,
+   exp:'Saudável é gastar menos do que ganha, para sempre sobrar algo para poupar e investir!',bonus:100},
 ];
 
 const CORES = ['#FF4757','#3DB8FF','#00E5A0','#FFD23F','#B08FFF','#FF9F43'];
@@ -1172,7 +1286,7 @@ async function hostIniciar(){
   const jogadoresObj={};
   jogs.forEach(jg=>{
     jogadoresObj[jg.id]={
-      ...jg,saldo:1500,posicao:0,propriedades:[],voltas:0,ativo:true,
+      ...jg,saldo:1500,posicao:0,propriedades:[],voltas:0,ativo:true,quizVistos:[],
       transacoes:[{desc:'Saldo inicial',valor:1500,tipo:'entrada',data:hoje()}]
     };
   });
@@ -1966,9 +2080,17 @@ async function abrirImposto(casa,j){
 // QUIZ
 // =====================================================
 function abrirQuiz(){
-  quizAtivo=QUIZ[Math.floor(Math.random()*QUIZ.length)];
+  // Evitar repetir perguntas já respondidas por este jogador
+  const jgAtual=jogo?.jogadores?.[jogo?.ordem?.[jogo?.turnoIdx]];
+  const vistos=jgAtual?.quizVistos||[];
+  const disponiveis=QUIZ.map((_,i)=>i).filter(i=>!vistos.includes(i));
+  // Quando todas já foram vistas, recomeçar o ciclo
+  const pool=disponiveis.length>0?disponiveis:QUIZ.map((_,i)=>i);
+  const sorteio=pool[Math.floor(Math.random()*pool.length)];
+  quizAtivo={...QUIZ[sorteio],idx:sorteio};
+  const restante=disponiveis.length>0?disponiveis.length-1:QUIZ.length-1;
   document.getElementById('mod-quiz-b').innerHTML=`
-    <div class="tag-b">🎓 EF04MA25 — Desafio Financeiro! Responda e ganhe bônus!</div>
+    <div class="tag-b">🎓 EF04MA25 — Desafio Financeiro! Responda e ganhe bônus!${restante<QUIZ.length?` <span style="opacity:.6;font-size:.8em">(${QUIZ.length-restante-1>0?QUIZ.length-restante-1+' já respondidas':'primeira vez nessa pergunta'})</span>`:''}</div>
     <div class="qp">${quizAtivo.p}</div>
     <div class="qops">${quizAtivo.ops.map((op,i)=>`
       <button class="qop" id="qop${i}" onclick="respQuiz(${i})">${['A','B','C','D'][i]}) ${op}</button>`).join('')}</div>
@@ -1984,6 +2106,10 @@ async function respQuiz(idx){
   if(!ok)document.getElementById('qop'+idx).classList.add('err');
   const j=JSON.parse(JSON.stringify(jogo));
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
+  // Registrar pergunta como vista para não repetir
+  if(!jg.quizVistos)jg.quizVistos=[];
+  if(quizAtivo.idx!==undefined&&!jg.quizVistos.includes(quizAtivo.idx))
+    jg.quizVistos.push(quizAtivo.idx);
   if(ok){
     jg.saldo+=quizAtivo.bonus;
     jg.transacoes.push({desc:'Quiz correto',valor:quizAtivo.bonus,tipo:'entrada',data:hoje()});
