@@ -59,6 +59,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 /* ====== SCREENS ====== */
 .screen{display:none;animation:fadeUp .3s ease}
 .screen.active{display:flex;flex-direction:column}
+#tela-jogo.active{flex-direction:row}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* ====== LOBBY ====== */
@@ -343,7 +344,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   <div class="logo">
     <span class="logo-emoji">🌊</span>
     <div class="logo-h">Banco de <em>Balneário!</em></div>
-    <div class="logo-sub">🎓 EDUCAÇÃO FINANCEIRA • 4º ANO EF</div>
+    <div class="logo-sub">🎓 EDUCAÇÃO FINANCEIRA</div>
     <div class="badge-free">🆓 100% GRATUITO • ESCOLAS MUNICIPAIS DE BC</div>
   </div>
   <div class="lbox">
@@ -835,6 +836,10 @@ async function hostIniciar(){
 
 function sairSala(){
   if(escutarSalaOff){ escutarSalaOff(); escutarSalaOff=null; }
+  if(codigoSala && meuId && !MODO_DEMO){
+    try{ db.ref('salas/'+codigoSala+'/jogadores/'+meuId).remove(); }catch(e){}
+  }
+  codigoSala=null; meuId=null;
   irTela('tela-lobby');
 }
 
@@ -895,13 +900,14 @@ function atualizarUI(){
   if(tabOn) renderAba(tabOn.id.replace('tab-',''));
   // verificar fim
   const ativos = jogo.ordem.filter(id=>jogo.jogadores[id]?.ativo);
-  if(ativos.length<=1){ encerrar(); }
+  if(ativos.length<=1 && document.getElementById('tela-fim').classList.contains('active')===false){ encerrar(); }
 }
 
 // =====================================================
 // TABULEIRO
 // =====================================================
 function renderBoard(){
+  if(!jogo||!jogo.props) return;
   const svg = document.getElementById('svg-board');
   const W=700, H=700;
   let out=`<defs>
@@ -923,7 +929,7 @@ function renderBoard(){
   <circle cx="350" cy="350" r="100" fill="#0a2848" opacity=".8"/>
   <text x="350" y="325" text-anchor="middle" font-family="Fredoka One,cursive" font-size="30" fill="#3DB8FF" opacity=".9">🌊 BANCO DE</text>
   <text x="350" y="362" text-anchor="middle" font-family="Fredoka One,cursive" font-size="28" fill="#3DB8FF" opacity=".9">BALNEÁRIO!</text>
-  <text x="350" y="387" text-anchor="middle" font-family="Nunito,sans-serif" font-size="12" fill="#00E5A0" font-weight="700">💰 EDUCAÇÃO FINANCEIRA 4º ANO</text>
+  <text x="350" y="387" text-anchor="middle" font-family="Nunito,sans-serif" font-size="12" fill="#00E5A0" font-weight="700">💰 EDUCAÇÃO FINANCEIRA</text>
   <text x="350" y="406" text-anchor="middle" font-family="Nunito,sans-serif" font-size="10" fill="#3DB8FF" opacity=".6">Balneário Camboriú • SC • BNCC</text>`;
 
   CASAS.forEach(c=>{
@@ -999,7 +1005,9 @@ function rolarDado(){
   const fin = FACES_ROT[resultado];
   cubo.style.setProperty('--fx', fin.rx+'deg');
   cubo.style.setProperty('--fy', fin.ry+'deg');
-  cubo.style.transform = `rotateX(${spinX}deg) rotateY(${spinY}deg)`;
+  // Force reflow so animation restarts cleanly
+  cubo.classList.remove('girando');
+  void cubo.offsetWidth;
   cubo.classList.add('girando');
 
   setTimeout(()=>{
@@ -1008,7 +1016,7 @@ function rolarDado(){
     document.getElementById('dado-num').textContent = resultado;
     dadoAnimando = false;
     setTimeout(()=>moverJogador(resultado), 300);
-  },1250);
+  },1300);
 }
 
 // =====================================================
@@ -1019,7 +1027,7 @@ async function moverJogador(passos){
   const jg = j.jogadores[j.ordem[j.turnoIdx]];
   const ant = jg.posicao;
   jg.posicao = (jg.posicao + passos) % CASAS.length;
-  if(jg.posicao<=ant && passos>0){
+  if(jg.posicao < ant){
     jg.voltas++;
     jg.saldo+=200;
     jg.transacoes.push({desc:'Salário — passou pelo INÍCIO',valor:200,tipo:'entrada',data:hoje()});
@@ -1368,12 +1376,13 @@ function renderAba(t){
       <div class="banco-bloco">
         <div class="banco-h">📊 Extrato — ${eu?.nome||'—'}</div>
         <div style="font-family:'Fredoka One',cursive;color:var(--verde);font-size:1.3rem;margin-bottom:.5rem">R$ ${eu?.saldo.toFixed(2)||'0.00'}</div>
-        ${trans.length?trans.map(t=>`<div class="ext-row">
-          <span style="flex:1;font-size:.71rem">${t.tipo==='entrada'?'⬆️':'⬇️'} ${t.desc}</span>
-          <span class="${t.tipo==='entrada'?'ep':'en'}">${t.tipo==='entrada'?'+':'-'}R$${t.valor.toFixed(0)}</span>
+        ${trans.length?trans.map(tx=>`<div class="ext-row">
+          <span style="flex:1;font-size:.71rem">${tx.tipo==='entrada'?'⬆️':'⬇️'} ${tx.desc}</span>
+          <span class="${tx.tipo==='entrada'?'ep':'en'}">${tx.tipo==='entrada'?'+':'-'}R$${tx.valor.toFixed(0)}</span>
         </div>`).join(''):'<p style="font-size:.75rem;color:var(--cinza2)">Sem transações.</p>'}
       </div>`;
   } else if(t==='im'){
+    if(!j.props){ body.innerHTML=''; return; }
     body.innerHTML=Object.values(j.props).map(prop=>{
       const casa=CASAS.find(c=>c.id===prop.id);
       const dono=prop.dono!=null?j.jogadores[prop.dono]:null;
