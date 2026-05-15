@@ -1602,8 +1602,8 @@ function mostrarEvento(cfg){
     btn2.textContent=cfg.btn2Txt; btn2.style.display='block';
     btn2.onclick=()=>{ fecharEvento(cfg.btn2Fn); };
   } else btn2.style.display='none';
-  // Animar
-  card.className='ev-anim';
+  // Animar — remover classe antes do reflow para reiniciar animação
+  card.className='';
   void card.offsetWidth;
   card.className='ev-anim';
   ov.classList.add('vis');
@@ -1867,8 +1867,8 @@ function temMonopolio(playerId, grupo, j){
 
 function abrirProp(casa,j){
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
-  const prop=j.props[casa.id];
-  if(!prop){setTimeout(proxTurno,500);return;}
+  const prop=j.props?.[casa.id]||j.props?.[String(casa.id)];
+  if(!prop){console.warn('abrirProp: prop não encontrada para id',casa.id,'props keys:',Object.keys(j.props||{}));setTimeout(proxTurno,500);return;}
 
   if(prop.dono===null){
     // ── Terreno livre: oferta de compra ──
