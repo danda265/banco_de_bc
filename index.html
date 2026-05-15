@@ -753,45 +753,45 @@ try {
   const Y_BOT = 660, Y_TOP = 40, X_LEFT = 40, X_RIGHT = 660;
   const defs = [
     {tipo:'inicio',      nome:'INÍCIO',           emoji:'🏁', cor:'#00E5A0'},
-    {tipo:'propriedade', nome:'Praia Central',     emoji:'🏖️', preco:170,aluguel:20, cor:'#3DB8FF',grupo:'praias'},
+    {tipo:'propriedade', nome:'Praia Central',     emoji:'🏖️', preco:170,aluguel:9, cor:'#3DB8FF',grupo:'praias'},
     {tipo:'carta-sorte', nome:'Sorte ou Azar',     emoji:'🃏', cor:'#B08FFF'},
-    {tipo:'propriedade', nome:'Rua do Comércio',   emoji:'🛍️', preco:155,aluguel:18, cor:'#FFD23F',grupo:'comercio'},
+    {tipo:'propriedade', nome:'Rua do Comércio',   emoji:'🛍️', preco:155,aluguel:8, cor:'#FFD23F',grupo:'comercio'},
     {tipo:'imposto',     nome:'Taxa Municipal',    emoji:'🏛️', cor:'#FF4757',valor:80},
-    {tipo:'propriedade', nome:'Parque Figueira',   emoji:'🌳', preco:160,aluguel:18, cor:'#00E5A0',grupo:'parques'},
+    {tipo:'propriedade', nome:'Parque Figueira',   emoji:'🌳', preco:160,aluguel:8, cor:'#00E5A0',grupo:'parques'},
     {tipo:'carta-sorte', nome:'Sorte ou Azar',     emoji:'🃏', cor:'#B08FFF'},
     {tipo:'propriedade', nome:'Beto Carreiro',     emoji:'🎡', preco:320,aluguel:38, cor:'#FF4757',grupo:'turismo'},
     {tipo:'quiz',        nome:'Quiz Financeiro',   emoji:'🎓', cor:'#00E5A0'},
-    {tipo:'propriedade', nome:'Shopping BC',       emoji:'🏬', preco:210,aluguel:25, cor:'#FFD23F',grupo:'comercio'},
+    {tipo:'propriedade', nome:'Shopping BC',       emoji:'🏬', preco:210,aluguel:17, cor:'#FFD23F',grupo:'comercio'},
     {tipo:'descanso',    nome:'Férias em BC!',     emoji:'😎', cor:'#FFD23F'},
     {tipo:'propriedade', nome:'Aeroporto de BC',   emoji:'✈️', preco:350,aluguel:42,cor:'#B08FFF',grupo:'transporte'},
     {tipo:'carta-sorte', nome:'Sorte ou Azar',     emoji:'🃏', cor:'#B08FFF'},
-    {tipo:'propriedade', nome:'Hotel Costa Norte', emoji:'🏨', preco:200,aluguel:24, cor:'#B08FFF',grupo:'turismo'},
+    {tipo:'propriedade', nome:'Hotel Costa Norte', emoji:'🏨', preco:200,aluguel:16, cor:'#B08FFF',grupo:'turismo'},
     {tipo:'imposto',     nome:'IPTU',              emoji:'📄', cor:'#FF4757',valor:70},
-    {tipo:'propriedade', nome:'Orla Beira-Mar',    emoji:'🌊', preco:245,aluguel:30, cor:'#3DB8FF',grupo:'praias'},
+    {tipo:'propriedade', nome:'Orla Beira-Mar',    emoji:'🌊', preco:245,aluguel:25, cor:'#3DB8FF',grupo:'praias'},
     {tipo:'quiz',        nome:'Quiz Financeiro',   emoji:'🎓', cor:'#00E5A0'},
-    {tipo:'propriedade', nome:'Mirante do Morro',  emoji:'🗻', preco:230,aluguel:28, cor:'#00E5A0',grupo:'parques'},
+    {tipo:'propriedade', nome:'Mirante do Morro',  emoji:'🗻', preco:230,aluguel:18, cor:'#00E5A0',grupo:'parques'},
     {tipo:'carta-sorte', nome:'Sorte ou Azar',     emoji:'🃏', cor:'#B08FFF'},
-    {tipo:'propriedade', nome:'Aqua Park',         emoji:'💦', preco:240,aluguel:28, cor:'#FF4757',grupo:'turismo'},
+    {tipo:'propriedade', nome:'Aqua Park',         emoji:'💦', preco:240,aluguel:24, cor:'#FF4757',grupo:'turismo'},
     {tipo:'imposto',     nome:'Multa de Trânsito', emoji:'🚦', cor:'#FF4757',valor:50},
-    {tipo:'propriedade', nome:'Píer de BC',        emoji:'⛵', preco:180,aluguel:22, cor:'#3DB8FF',grupo:'praias'},
+    {tipo:'propriedade', nome:'Píer de BC',        emoji:'⛵', preco:180,aluguel:9, cor:'#3DB8FF',grupo:'praias'},
     {tipo:'quiz',        nome:'Quiz Financeiro',   emoji:'🎓', cor:'#00E5A0'},
-    {tipo:'propriedade', nome:'Mercado Municipal', emoji:'🛒', preco:140,aluguel:16, cor:'#FFD23F',grupo:'comercio'},
+    {tipo:'propriedade', nome:'Mercado Municipal', emoji:'🛒', preco:140,aluguel:7, cor:'#FFD23F',grupo:'comercio'},
     {tipo:'carta-sorte', nome:'Sorte ou Azar',     emoji:'🃏', cor:'#B08FFF'},
-    {tipo:'propriedade', nome:'Praia Brava',       emoji:'🌅', preco:200,aluguel:24, cor:'#3DB8FF',grupo:'praias'},
+    {tipo:'propriedade', nome:'Praia Brava',       emoji:'🌅', preco:200,aluguel:16, cor:'#3DB8FF',grupo:'praias'},
     {tipo:'imposto',     nome:'Taxa de Turismo',   emoji:'🎫', cor:'#FF4757',valor:60},
-    {tipo:'propriedade', nome:'Centro de Eventos', emoji:'🎪', preco:265,aluguel:32, cor:'#FF4757',grupo:'turismo'},
+    {tipo:'propriedade', nome:'Centro de Eventos', emoji:'🎪', preco:265,aluguel:27, cor:'#FF4757',grupo:'turismo'},
     {tipo:'quiz',        nome:'Quiz Financeiro',   emoji:'🎓', cor:'#00E5A0'},
-    {tipo:'propriedade', nome:'Estação de Trem',   emoji:'🚂', preco:250,aluguel:30, cor:'#B08FFF',grupo:'transporte'},
+    {tipo:'propriedade', nome:'Estação de Trem',   emoji:'🚂', preco:250,aluguel:25, cor:'#B08FFF',grupo:'transporte'},
     {tipo:'carta-sorte', nome:'Sorte ou Azar',     emoji:'🃏', cor:'#B08FFF'},
     {tipo:'propriedade', nome:'Farol de BC',       emoji:'🗼', preco:300,aluguel:36, cor:'#00E5A0',grupo:'turismo'},
     {tipo:'quiz',        nome:'Quiz Financeiro',   emoji:'🎓', cor:'#00E5A0'},
-    {tipo:'propriedade', nome:'Restaurante Orla',  emoji:'🍽️', preco:175,aluguel:20, cor:'#FFD23F',grupo:'comercio'},
+    {tipo:'propriedade', nome:'Restaurante Orla',  emoji:'🍽️', preco:175,aluguel:9, cor:'#FFD23F',grupo:'comercio'},
     {tipo:'imposto',     nome:'ISS Serviços',      emoji:'📋', cor:'#FF4757',valor:90},
-    {tipo:'propriedade', nome:'Marina de BC',      emoji:'⚓', preco:220,aluguel:26, cor:'#3DB8FF',grupo:'praias'},
+    {tipo:'propriedade', nome:'Marina de BC',      emoji:'⚓', preco:220,aluguel:18, cor:'#3DB8FF',grupo:'praias'},
     {tipo:'carta-sorte', nome:'Sorte ou Azar',     emoji:'🃏', cor:'#B08FFF'},
     {tipo:'propriedade', nome:'Teleférico',        emoji:'🚡', preco:310,aluguel:37, cor:'#B08FFF',grupo:'transporte'},
     {tipo:'quiz',        nome:'Quiz Financeiro',   emoji:'🎓', cor:'#00E5A0'},
-    {tipo:'propriedade', nome:'Parque das Nações', emoji:'🏟️', preco:195,aluguel:23, cor:'#00E5A0',grupo:'parques'},
+    {tipo:'propriedade', nome:'Parque das Nações', emoji:'🏟️', preco:195,aluguel:16, cor:'#00E5A0',grupo:'parques'},
   ];
   const pts = [];
   const n = 40, side = 10;
@@ -1540,16 +1540,23 @@ const NARRATIVAS_IMPOSTO = {
 };
 const NARRATIVAS_INICIO = 'Você deu mais uma volta completa por Balneário Camboriú! O banco paga seu salário de R$ 200,00. Parabéns!';
 
-// Multiplicadores inspirados no Banco Imobiliário real:
-// base baixo (~12% do preço), construções disparam muito o aluguel
+// Multiplicadores por faixa — igual Banco Imobiliário real:
+//   Baratas (base≤9):  5% do preço, hotel 80× — explode igual ao jogo real
+//   Caras   (base≥28): 12% do preço, hotel 30× — impacta sem ser absurdo
+// m = [terreno, mono, kitnet, studio, ap, cobertura, hotel]
 function calcularAluguel(prop, isMonopoly){
   const base = prop.aluguel;
-  if(prop.hotel)        return base * 30; // Hotel Boutique — máximo
-  if(prop.casas === 4)  return base * 18; // Cobertura
-  if(prop.casas === 3)  return base * 10; // Apartamento
-  if(prop.casas === 2)  return base * 5;  // Studio
-  if(prop.casas === 1)  return base * 3;  // Kitnet
-  return isMonopoly ? base * 2 : base;    // Monopolio ou terreno livre
+  let m;
+  if     (base <=  9) m=[1,2, 4,12,30,55,80]; // Tier 1 baratas  — hotel 80×
+  else if(base <= 18) m=[1,2, 4,10,22,38,55]; // Tier 2 médio-low — hotel 55×
+  else if(base <= 27) m=[1,2, 3, 8,18,28,40]; // Tier 3 médio-high— hotel 40×
+  else                m=[1,2, 3, 5,10,18,30]; // Tier 4 caras     — hotel 30×
+  if(prop.hotel)       return base*m[6];
+  if(prop.casas === 4) return base*m[5];
+  if(prop.casas === 3) return base*m[4];
+  if(prop.casas === 2) return base*m[3];
+  if(prop.casas === 1) return base*m[2];
+  return isMonopoly ? base*m[1] : base*m[0];
 }
 
 const DEV_NOMES =['Terreno','Kitnet','Studio','Apartamento','Cobertura','Hotel Boutique'];
