@@ -430,9 +430,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   100%{opacity:0;transform:scale(0)}
 }
 /* ====== CARD DE EVENTO (narrativa dramática) ====== */
-#ev-overlay{display:none;position:fixed;inset:0;z-index:260;
+#ev-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:260;
   flex-direction:column;align-items:center;justify-content:center;
-  background:rgba(4,14,28,.9);backdrop-filter:blur(14px)}
+  background:rgba(4,14,28,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 #ev-overlay.vis{display:flex}
 #ev-card{
   background:var(--card);border:2px solid var(--borda);border-radius:24px;
@@ -1879,7 +1879,7 @@ function abrirProp(casa,j){
   _diag('2/3 abrirProp → prop='+(prop?'OK':'NULL')+' dono='+prop?.dono+' id='+casa.id); // TEMP
   if(!prop){logErro(`abrirProp: prop id=${casa.id} não encontrada. Keys presentes: ${Object.keys(j.props||{}).join(',')}`);setTimeout(proxTurno,500);return;}
 
-  if(prop.dono===null){
+  try{ if(prop.dono===null){
     // ── Terreno livre: oferta de compra ──
     const podComprar=jg.saldo>=prop.preco;
     const grupoTotal=GRUPOS[casa.grupo]?.length||0;
@@ -1887,7 +1887,7 @@ function abrirProp(casa,j){
       emoji:casa.emoji,titulo:casa.nome,
       narrativa:`Terreno disponível em ${grupoL(casa.grupo)}! ${grupoTotal>1?`Compre todos os ${grupoTotal} imóveis do grupo e dobre o aluguel!`:''}`,
       cor:casa.cor,
-      reciboHtml:`<div class="r-t">📋 FICHA DO IMÓVEL</div><div class="r-n">${grupoL(casa.grupo)} • Balneário Camboriú</div><div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div><div class="r-l"><span>Preço de compra</span><span style="color:${casa.cor}">R$ ${prop.preco},00</span></div><div class="r-l"><span>Aluguel base</span><span style="color:var(--verde)">R$ ${prop.aluguel},00/visita</span></div><div class="r-l"><span>Com monopólio</span><span style="color:var(--amarelo)">R$ ${prop.aluguel*2},00/visita</span></div><div class="r-l"><span>Seu saldo</span><span>R$ ${jg.saldo.toFixed(0)},00</span></div><div class="r-l"><span>Após comprar</span><span>${podComprar?`R$ ${(jg.saldo-prop.preco).toFixed(0)},00`:'❌ Saldo insuficiente'}</span></div>`,
+      reciboHtml:`<div class="r-t">📋 FICHA DO IMÓVEL</div><div class="r-n">${grupoL(casa.grupo)} • Balneário Camboriú</div><div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div><div class="r-l"><span>Preço de compra</span><span style="color:${casa.cor}">R$ ${prop.preco},00</span></div><div class="r-l"><span>Aluguel base</span><span style="color:var(--verde)">R$ ${prop.aluguel},00/visita</span></div><div class="r-l"><span>Com monopólio</span><span style="color:var(--amarelo)">R$ ${prop.aluguel*2},00/visita</span></div><div class="r-l"><span>Seu saldo</span><span>R$ ${Number(jg.saldo||0).toFixed(0)},00</span></div><div class="r-l"><span>Após comprar</span><span>${podComprar?`R$ ${Number(jg.saldo-prop.preco).toFixed(0)},00`:'❌ Saldo insuficiente'}</span></div>`,
       tagHtml:'💡 EF04MA24 — Investimento em imóveis gera renda passiva!',
       btnTxt:podComprar?`🛒 Comprar por R$ ${prop.preco},00`:'❌ Sem saldo — Passar',
       btnFn:podComprar?()=>comprarProp(casa.id):proxTurno,
@@ -1954,6 +1954,17 @@ function abrirProp(casa,j){
     } else {
       setTimeout(proxTurno,800);
     }
+  }}catch(errProp){
+    // Erro ao montar o card da propriedade — card de emergência
+    _diag('ERRO abrirProp: '+errProp?.message); // TEMP
+    logErro('abrirProp render: '+String(errProp?.message||errProp));
+    mostrarEvento({
+      emoji:casa.emoji,titulo:casa.nome,
+      narrativa:'Propriedade disponível — R$ '+(prop?.preco||'?')+',00',
+      cor:casa.cor||'var(--azul)',
+      btnTxt:prop?.dono==null?'🛒 Ver opções':'✅ Avançar',
+      btnFn:prop?.dono==null?()=>comprarProp(casa.id):proxTurno
+    });
   }
 }
 
