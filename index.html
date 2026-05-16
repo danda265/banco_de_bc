@@ -2060,9 +2060,10 @@ async function comprarProp(id){
       btnTxt:'Ótimo investimento! 🏠',btnFn:proxTurno
     });
   }catch(err){
-    logErro('comprarProp: '+String(err?.message||err));
+    const msg=String(err?.message||err);
+    logErro('comprarProp: '+msg);
     mostrarEvento({emoji:'⚠️',titulo:'Erro na compra',
-      narrativa:'Não foi possível registrar a compra. Avance o turno e tente na próxima vez.',
+      narrativa:'ERRO: '+msg,
       cor:'var(--vermelho)',btnTxt:'Avançar turno',btnFn:proxTurno});
   }
 }
