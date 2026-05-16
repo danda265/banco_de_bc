@@ -578,9 +578,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 <div id="tela-jogo" class="screen">
   <div class="sb-overlay" id="sb-overlay" onclick="fecharSb()"></div>
   <div class="sb" id="sidebar">
-    <div class="sb-top">
-      <div class="sb-game">🌊 Banco de Balneário!</div>
-      <div class="sb-vez">Turno <span id="sb-turno">1</span> • <span id="sb-vez-nome">—</span></div>
+    <div class="sb-top" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem">
+      <div style="flex:1;min-width:0">
+        <div class="sb-game">🌊 Banco de Balneário!</div>
+        <div class="sb-vez">Turno <span id="sb-turno">1</span> • <span id="sb-vez-nome">—</span></div>
+      </div>
+      <button id="sb-fechar" onclick="fecharSb()" style="display:none;background:var(--vermelho);color:#fff;border:none;border-radius:8px;width:32px;height:32px;font-size:1.1rem;cursor:pointer;flex-shrink:0;font-weight:900;line-height:1">✕</button>
     </div>
     <div class="sb-tabs">
       <button class="stab on" id="tab-jog" onclick="aba('jog')">👥<br>Jogadores</button>
@@ -1731,6 +1734,7 @@ async function venderDesenvolvimento(id){
 
 function rolarDado(){
   if(!ehMinhaVez()||jogo.fase!=='aguardando-dado'||dadoAnimando)return;
+  fecharSb(); // garante que sidebar não bloqueia o jogo no mobile
   dadoAnimando=true;
   document.getElementById('btn-dado').disabled=true;
   snd('dado');
@@ -2060,10 +2064,9 @@ async function comprarProp(id){
       btnTxt:'Ótimo investimento! 🏠',btnFn:proxTurno
     });
   }catch(err){
-    const msg=String(err?.message||err);
-    logErro('comprarProp: '+msg);
+    logErro('comprarProp: '+String(err?.message||err));
     mostrarEvento({emoji:'⚠️',titulo:'Erro na compra',
-      narrativa:'ERRO: '+msg,
+      narrativa:'Não foi possível registrar a compra. Avance o turno e tente na próxima vez.',
       cor:'var(--vermelho)',btnTxt:'Avançar turno',btnFn:proxTurno});
   }
 }
@@ -2321,10 +2324,15 @@ function aba(t){
 function abrirSb(){
   document.getElementById('sidebar').classList.add('aberta');
   document.getElementById('sb-overlay').classList.add('vis');
+  // Mostrar botão X de fechar só no mobile (sidebar em modal)
+  const btn=document.getElementById('sb-fechar');
+  if(btn)btn.style.display=window.innerWidth<=860?'block':'none';
 }
 function fecharSb(){
   document.getElementById('sidebar').classList.remove('aberta');
   document.getElementById('sb-overlay').classList.remove('vis');
+  const btn=document.getElementById('sb-fechar');
+  if(btn)btn.style.display='none';
 }
 
 function renderAba(t){
