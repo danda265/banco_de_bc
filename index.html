@@ -1676,8 +1676,9 @@ async function comprarDesenvolvimento(id){
   const jg=j.jogadores[meuId];
   const prop=j.props[id];
   const casa=CASAS.find(c=>c.id===id);
-  if(!prop||prop.dono!==meuId){toast('Você não é dono!');return;}
+  if(!jg||!prop||prop.dono!==meuId){toast('Você não é dono!');return;}
   if(prop.hotel){toast('🏨 Máximo! Já tem hotel.');return;}
+  jg.transacoes=jg.transacoes||[];j.log=j.log||[];
   const isHotel=prop.casas>=4;
   const preco=casa?.preco??prop?.preco??0;
   const custo=Math.floor(preco*.5); // 50% por nível — igual hotel e casa (Banco Imobiliário)
@@ -2033,7 +2034,11 @@ async function comprarProp(id){
     // Preço definitivo: usa CASAS (fonte da verdade) como primário, prop como fallback
     const preco=casa?.preco??prop?.preco;
     // Guard: prop não existe, já comprado, sem saldo ou sem preço definido
-    if(!prop||!casa||prop.dono!=null||!preco||jg.saldo<preco)return;
+    if(!jg||!prop||!casa||prop.dono!=null||!preco||jg.saldo<preco)return;
+    // Firebase retorna arrays vazios como null — garantir que existem
+    jg.propriedades=jg.propriedades||[];
+    jg.transacoes=jg.transacoes||[];
+    j.log=j.log||[];
     jg.saldo-=preco;prop.dono=j.ordem[j.turnoIdx];
     jg.propriedades.push(Number(id));j.reciboN++;
     jg.transacoes.push({desc:`Compra — ${casa.nome}`,valor:preco,tipo:'saida',data:hoje()});
