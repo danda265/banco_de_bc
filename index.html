@@ -2319,15 +2319,18 @@ function encerrar(){
 function aba(t){
   document.querySelectorAll('.stab').forEach(b=>{b.classList.remove('on');b.style.color='';});
   document.getElementById('tab-'+t).classList.add('on');
+  // No desktop, garantir que o overlay não está bloqueando o jogo
+  if(window.innerWidth>860) document.getElementById('sb-overlay').classList.remove('vis');
   try{renderAba(t);}catch(e){console.warn('[renderAba]',e);}
 }
 
 function abrirSb(){
   document.getElementById('sidebar').classList.add('aberta');
-  document.getElementById('sb-overlay').classList.add('vis');
-  // Mostrar botão X de fechar só no mobile (sidebar em modal)
+  // No desktop (>860px) a sidebar já está sempre visível — não mostrar overlay
+  const isMobile=window.innerWidth<=860;
+  if(isMobile) document.getElementById('sb-overlay').classList.add('vis');
   const btn=document.getElementById('sb-fechar');
-  if(btn)btn.style.display=window.innerWidth<=860?'block':'none';
+  if(btn)btn.style.display=isMobile?'block':'none';
 }
 function fecharSb(){
   document.getElementById('sidebar').classList.remove('aberta');
@@ -2374,7 +2377,7 @@ function renderAba(t){
 
   } else if(t==='banco'){
     const outros=j.ordem.filter(id=>id!==meuId&&j.jogadores[id]?.ativo);
-    const trans=eu?[...eu.transacoes].reverse().slice(0,18):[];
+    const trans=eu?[...(eu.transacoes||[])].reverse().slice(0,18):[];
     body.innerHTML=`
       <div class="banco-bloco">
         <div class="banco-h">💸 Transferir Dinheiro</div>
@@ -2389,7 +2392,7 @@ function renderAba(t){
       </div>
       <div class="banco-bloco">
         <div class="banco-h">📊 Extrato — ${eu?.nome||'—'}</div>
-        <div style="font-family:'Fredoka One',cursive;color:var(--verde);font-size:1.3rem;margin-bottom:.5rem">R$ ${eu?.saldo.toFixed(2)||'0.00'}</div>
+        <div style="font-family:'Fredoka One',cursive;color:var(--verde);font-size:1.3rem;margin-bottom:.5rem">R$ ${(eu?.saldo??0).toFixed(2)}</div>
         ${trans.length?trans.map(tx=>`<div class="ext-row">
           <span style="flex:1;font-size:.71rem">${tx.tipo==='entrada'?'⬆️':'⬇️'} ${tx.desc}</span>
           <span class="${tx.tipo==='entrada'?'ep':'en'}">${tx.tipo==='entrada'?'+':'-'}R$${tx.valor.toFixed(0)}</span>
@@ -2405,7 +2408,8 @@ function renderAba(t){
     }
     body.innerHTML=`<div style="font-size:.68rem;color:var(--cinza2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:.5rem">Meus imóveis (${minhasProps.length}) — 🏚️ vender por 50%</div>`+
       minhasProps.map(prop=>{
-        const casa=CASAS.find(c=>c.id===prop.id);
+        const casa=CASAS.find(c=>c.id===prop.id)||CASAS.find(c=>c.id===Number(prop.id));
+        if(!casa) return ''; // prop sem casa correspondente — ignorar
         const isMono=temMonopolio(meuId,casa.grupo,j);
         const aluguelAtual=calcularAluguel(prop,isMono);
         return `<div class="im-row" style="border-left-color:${GRUPO_COR[casa.grupo]||casa.cor}">
