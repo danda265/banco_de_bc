@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🌊 Banco de Balneário! v2.3 — Multiplayer Online</title>
+<title>🌊 Banco de Balneário! v2.4 — Multiplayer Online</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1679,7 +1679,8 @@ async function comprarDesenvolvimento(id){
   if(!prop||prop.dono!==meuId){toast('Você não é dono!');return;}
   if(prop.hotel){toast('🏨 Máximo! Já tem hotel.');return;}
   const isHotel=prop.casas>=4;
-  const custo=Math.floor(prop.preco*.5); // 50% por nível — igual hotel e casa (Banco Imobiliário)
+  const preco=casa?.preco??prop?.preco??0;
+  const custo=Math.floor(preco*.5); // 50% por nível — igual hotel e casa (Banco Imobiliário)
   if(jg.saldo<custo){
     mostrarEvento({emoji:'😬',titulo:'Saldo insuficiente',
       narrativa:`Você precisaria de R$ ${custo},00 para construir. Junte mais dinheiro!`,
@@ -1716,8 +1717,9 @@ async function venderDesenvolvimento(id){
   if(!prop||prop.dono!==meuId)return;
   if(!prop.casas&&!prop.hotel){toast('Nada para vender.');return;}
   let retorno;
-  if(prop.hotel){retorno=Math.floor(prop.preco*.35);prop.hotel=false;prop.casas=4;}
-  else{retorno=Math.floor(prop.preco*.25);prop.casas--;}
+  const preco=casa?.preco??prop?.preco??0;
+  if(prop.hotel){retorno=Math.floor(preco*.35);prop.hotel=false;prop.casas=4;}
+  else{retorno=Math.floor(preco*.25);prop.casas--;}
   jg.saldo+=retorno;j.reciboN++;
   jg.transacoes.push({desc:`Venda benfeitoria — ${casa.nome}`,valor:retorno,tipo:'entrada',data:hoje()});
   j.log.push({msg:`🏚️ ${jg.nome} vendeu benfeitoria em ${casa.nome} por R$${retorno}`,tipo:'lv'});
@@ -1889,18 +1891,23 @@ function abrirProp(casa,j){
   const jg=j.jogadores[j.ordem[j.turnoIdx]];
   const prop=j.props?.[casa.id]||j.props?.[String(casa.id)];
   if(!prop){logErro(`abrirProp: prop id=${casa.id} não encontrada. Keys presentes: ${Object.keys(j.props||{}).join(',')}`);setTimeout(proxTurno,500);return;}
+  // Preço e aluguel sempre a partir de CASAS (fonte da verdade) — nunca depende do Firebase
+  const preco=casa.preco;
+  const aluguelBase=casa.aluguel;
+  // Sincroniza aluguel na cópia local para cálculos de exibição (Firebase pode ter valor antigo)
+  prop.aluguel=aluguelBase;
 
   try{ if(prop.dono==null){
     // ── Terreno livre: oferta de compra ──
-    const podComprar=jg.saldo>=prop.preco;
+    const podComprar=jg.saldo>=preco;
     const grupoTotal=GRUPOS[casa.grupo]?.length||0;
     mostrarEvento({
       emoji:casa.emoji,titulo:casa.nome,
       narrativa:`Terreno disponível em ${grupoL(casa.grupo)}! ${grupoTotal>1?`Compre todos os ${grupoTotal} imóveis do grupo e dobre o aluguel!`:''}`,
       cor:casa.cor,
-      reciboHtml:`<div class="r-t">📋 FICHA DO IMÓVEL</div><div class="r-n">${grupoL(casa.grupo)} • Balneário Camboriú</div><div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div><div class="r-l"><span>Preço de compra</span><span style="color:${casa.cor}">R$ ${prop.preco},00</span></div><div class="r-l"><span>Aluguel base</span><span style="color:var(--verde)">R$ ${prop.aluguel},00/visita</span></div><div class="r-l"><span>Com monopólio</span><span style="color:var(--amarelo)">R$ ${prop.aluguel*2},00/visita</span></div><div class="r-l"><span>Seu saldo</span><span>R$ ${Number(jg.saldo||0).toFixed(0)},00</span></div><div class="r-l"><span>Após comprar</span><span>${podComprar?`R$ ${Number(jg.saldo-prop.preco).toFixed(0)},00`:'❌ Saldo insuficiente'}</span></div>`,
+      reciboHtml:`<div class="r-t">📋 FICHA DO IMÓVEL</div><div class="r-n">${grupoL(casa.grupo)} • Balneário Camboriú</div><div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div><div class="r-l"><span>Preço de compra</span><span style="color:${casa.cor}">R$ ${preco},00</span></div><div class="r-l"><span>Aluguel base</span><span style="color:var(--verde)">R$ ${aluguelBase},00/visita</span></div><div class="r-l"><span>Com monopólio</span><span style="color:var(--amarelo)">R$ ${aluguelBase*2},00/visita</span></div><div class="r-l"><span>Seu saldo</span><span>R$ ${Number(jg.saldo||0).toFixed(0)},00</span></div><div class="r-l"><span>Após comprar</span><span>${podComprar?`R$ ${Number(jg.saldo-preco).toFixed(0)},00`:'❌ Saldo insuficiente'}</span></div>`,
       tagHtml:'💡 EF04MA24 — Investimento em imóveis gera renda passiva!',
-      btnTxt:podComprar?`🛒 Comprar por R$ ${prop.preco},00`:'❌ Sem saldo — Passar',
+      btnTxt:podComprar?`🛒 Comprar por R$ ${preco},00`:'❌ Sem saldo — Passar',
       btnFn:podComprar?()=>comprarProp(casa.id):proxTurno,
       btn2Txt:podComprar?'👋 Passar sem comprar':null,
       btn2Fn:podComprar?proxTurno:null
@@ -1910,8 +1917,8 @@ function abrirProp(casa,j){
     // ── Sua propriedade: opções de desenvolvimento ──
     const isMono=temMonopolio(meuId,casa.grupo,j);
     const curIdx=prop.hotel?5:prop.casas;
-    const base=prop.aluguel;
-    // Tabela de aluguéis por nível (sem e com monopólio no terreno)
+    const base=aluguelBase;
+    // Tabela de aluguéis por nível (calculados via calcularAluguel para consistência)
     const rentTab=[
       isMono?base*2:base, base*2, base*3, base*5, base*7, base*10
     ];
@@ -1923,10 +1930,10 @@ function abrirProp(casa,j){
       </div>`;
     }).join('');
     const podeConstruir=!prop.hotel&&ehMinhaVez();
-    const custoConstr=prop.casas>=4?Math.floor(prop.preco*.7):Math.floor(prop.preco*.5);
+    const custoConstr=prop.casas>=4?Math.floor(preco*.7):Math.floor(preco*.5);
     const proxNome=DEV_NOMES[curIdx+1]||'Hotel Boutique';
     const proxEmoji=DEV_EMOJIS[curIdx+1]||'🏨';
-    const retornoBenf=prop.hotel?Math.floor(prop.preco*.35):Math.floor(prop.preco*.25);
+    const retornoBenf=prop.hotel?Math.floor(preco*.35):Math.floor(preco*.25);
     const buildBtn=podeConstruir
       ?`<button class="ev-btn" style="background:var(--verde);color:#07192e;margin-top:.5rem;font-size:.82rem" onclick="comprarDesenvolvimento(${casa.id})">🏗️ Construir: ${proxEmoji} ${proxNome} — R$ ${custoConstr},00</button>
         ${prop.casas>0||prop.hotel?`<button class="ev-btn ev-btn2" style="margin-top:.3rem;font-size:.78rem" onclick="venderDesenvolvimento(${casa.id})">🏚️ Demolir e receber R$ ${retornoBenf},00</button>`:''}`
@@ -1934,7 +1941,7 @@ function abrirProp(casa,j){
         <button class="ev-btn ev-btn2" style="margin-top:.3rem;font-size:.78rem" onclick="venderDesenvolvimento(${casa.id})">🏚️ Demolir hotel (R$ ${retornoBenf},00)</button>`;
     const devHtml=`<div style="margin:.2rem 0 .4rem;display:grid;gap:2px">${ladderHtml}</div>
       ${buildBtn}
-      <button class="ev-btn ev-btn2" style="margin-top:.4rem;font-size:.78rem" onclick="venderProp(${casa.id})">💸 Vender imóvel ao banco (R$ ${Math.floor(prop.preco*.5)},00)</button>`;
+      <button class="ev-btn ev-btn2" style="margin-top:.4rem;font-size:.78rem" onclick="venderProp(${casa.id})">💸 Vender imóvel ao banco (R$ ${Math.floor(preco*.5)},00)</button>`;
     mostrarEvento({
       emoji:casa.emoji,titulo:'Minha propriedade!',
       narrativa:`${casa.nome} é sua! ${isMono?'⭐ MONOPÓLIO — aluguel dobrado! Agora pode construir!':'Complete o grupo '+grupoL(casa.grupo)+' para dobrar o aluguel e construir.'}`,
@@ -1971,7 +1978,7 @@ function abrirProp(casa,j){
     logErro('abrirProp render: '+String(errProp?.message||errProp));
     mostrarEvento({
       emoji:casa.emoji,titulo:casa.nome,
-      narrativa:'Propriedade disponível — R$ '+(prop?.preco||'?')+',00',
+      narrativa:'Propriedade disponível — R$ '+(casa.preco||prop?.preco||'?')+',00',
       cor:casa.cor||'var(--azul)',
       btnTxt:prop?.dono==null?'🛒 Ver opções':'✅ Avançar',
       btnFn:prop?.dono==null?()=>comprarProp(casa.id):proxTurno
@@ -2018,34 +2025,40 @@ async function confirmarAluguel(){
 
 async function comprarProp(id){
   if(!ehMinhaVez())return;
-  const j=JSON.parse(JSON.stringify(jogo));
-  const jg=j.jogadores[j.ordem[j.turnoIdx]];
-  const prop=j.props[id];
-  const casa=CASAS.find(c=>c.id===id);
-  // Guard: já comprado por alguém (evita dupla-compra por race condition) ou saldo insuficiente
-  if(!prop||prop.dono!=null||jg.saldo<prop.preco)return;
-  jg.saldo-=prop.preco;prop.dono=j.ordem[j.turnoIdx];
-  jg.propriedades.push(id);j.reciboN++;
-  jg.transacoes.push({desc:`Compra — ${casa.nome}`,valor:prop.preco,tipo:'saida',data:hoje()});
-  j.log.push({msg:`🏠 ${jg.nome} comprou ${casa.nome} por R$${prop.preco}`,tipo:'le'});
-  const mono=temMonopolio(j.ordem[j.turnoIdx],casa.grupo,j);
-  if(mono) j.log.push({msg:`⭐ ${jg.nome} completou o grupo ${grupoL(casa.grupo)}! Aluguel 2×!`,tipo:'le'});
-  // Zerar eventoAtual ANTES do fbSet — impede restaurarEvento de reabrir card de compra
-  j.eventoAtual=null;
-  snd(mono?'vitoria':'comprar');
   try{
+    const j=JSON.parse(JSON.stringify(jogo));
+    const jg=j.jogadores[j.ordem[j.turnoIdx]];
+    const prop=j.props[id]||j.props[String(id)];
+    const casa=CASAS.find(c=>c.id===id)||CASAS.find(c=>c.id===Number(id));
+    // Preço definitivo: usa CASAS (fonte da verdade) como primário, prop como fallback
+    const preco=casa?.preco??prop?.preco;
+    // Guard: prop não existe, já comprado, sem saldo ou sem preço definido
+    if(!prop||!casa||prop.dono!=null||!preco||jg.saldo<preco)return;
+    jg.saldo-=preco;prop.dono=j.ordem[j.turnoIdx];
+    jg.propriedades.push(Number(id));j.reciboN++;
+    jg.transacoes.push({desc:`Compra — ${casa.nome}`,valor:preco,tipo:'saida',data:hoje()});
+    j.log.push({msg:`🏠 ${jg.nome} comprou ${casa.nome} por R$${preco}`,tipo:'le'});
+    const mono=temMonopolio(j.ordem[j.turnoIdx],casa.grupo,j);
+    if(mono) j.log.push({msg:`⭐ ${jg.nome} completou o grupo ${grupoL(casa.grupo)}! Aluguel 2×!`,tipo:'le'});
+    // Sincronizar aluguel com CASAS (corrige salas criadas com valores antigos)
+    prop.aluguel=casa.aluguel;
+    // Zerar eventoAtual ANTES do fbSet — impede restaurarEvento de reabrir card de compra
+    j.eventoAtual=null;
+    snd(mono?'vitoria':'comprar');
     await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();renderBoard();
     mostrarEvento({
       emoji:casa.emoji,titulo:mono?'⭐ MONOPÓLIO!':'Imóvel comprado!',
       narrativa:mono?`Você comprou todos os imóveis de ${grupoL(casa.grupo)}! O aluguel dobrou para todos do grupo! Agora ganhe R$ ${prop.aluguel*2},00 por visita!`:`Parabéns! ${casa.nome} é seu. Cada vez que alguém parar aqui, você recebe R$ ${prop.aluguel},00!`,
-      valor:-prop.preco,cor:mono?'var(--amarelo)':casa.cor,
-      reciboHtml:`<div class="r-t">🏠 RECIBO DE COMPRA</div><div class="r-n">Nº ${j.reciboN} — Balneário Camboriú • SC</div><div class="r-l"><span>Comprador</span><span>${jg.avatar} ${escHtml(jg.nome||'')}</span></div><div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div><div class="r-l"><span>Grupo</span><span>${grupoL(casa.grupo)}</span></div><div class="r-l"><span>Valor Pago</span><span class="rn">− R$ ${prop.preco},00</span></div><div class="r-l"><span>Aluguel</span><span class="rp">R$ ${prop.aluguel}${mono?' → 2× = R$'+(prop.aluguel*2)+'':''}</span></div><div class="r-l"><span><strong>Novo Saldo</strong></span><span><strong>R$ ${jg.saldo.toFixed(0)},00</strong></span></div>`,
+      valor:-preco,cor:mono?'var(--amarelo)':casa.cor,
+      reciboHtml:`<div class="r-t">🏠 RECIBO DE COMPRA</div><div class="r-n">Nº ${j.reciboN} — Balneário Camboriú • SC</div><div class="r-l"><span>Comprador</span><span>${jg.avatar} ${escHtml(jg.nome||'')}</span></div><div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div><div class="r-l"><span>Grupo</span><span>${grupoL(casa.grupo)}</span></div><div class="r-l"><span>Valor Pago</span><span class="rn">− R$ ${preco},00</span></div><div class="r-l"><span>Aluguel</span><span class="rp">R$ ${prop.aluguel}${mono?' → 2× = R$'+(prop.aluguel*2)+'':''}</span></div><div class="r-l"><span><strong>Novo Saldo</strong></span><span><strong>R$ ${jg.saldo.toFixed(0)},00</strong></span></div>`,
       tagHtml:'💡 Dono de imóvel recebe aluguel. Construa casas para ganhar mais!',
       btnTxt:'Ótimo investimento! 🏠',btnFn:proxTurno
     });
   }catch(err){
     logErro('comprarProp: '+String(err?.message||err));
-    setTimeout(proxTurno,500);
+    mostrarEvento({emoji:'⚠️',titulo:'Erro na compra',
+      narrativa:'Não foi possível registrar a compra. Avance o turno e tente na próxima vez.',
+      cor:'var(--vermelho)',btnTxt:'Avançar turno',btnFn:proxTurno});
   }
 }
 
@@ -2058,7 +2071,7 @@ async function venderProp(id){
   const casa=CASAS.find(c=>c.id===id);
   const prop=j.props[id];
   if(!prop)return;
-  const valorVenda=Math.floor(prop.preco*0.5);
+  const valorVenda=Math.floor((casa?.preco??prop?.preco??0)*0.5);
   jg.saldo+=valorVenda;
   jg.propriedades=jg.propriedades.filter(pid=>pid!==id);
   prop.dono=null;prop.casas=0;prop.hotel=false;
@@ -2386,8 +2399,8 @@ function renderAba(t){
             <div class="im-d">${grupoL(casa.grupo)} • ${devLabel(prop)} • R$${aluguelAtual}/vis.</div>
           </div>
           <div style="text-align:right">
-            <div class="im-v" style="color:${casa.cor}">R$${prop.preco}</div>
-            ${minhaVez?`<button class="im-sell" onclick="venderProp(${casa.id})">🏚️ R$${Math.floor(prop.preco*.5)}</button>`:''}
+            <div class="im-v" style="color:${casa.cor}">R$${casa.preco??prop.preco}</div>
+            ${minhaVez?`<button class="im-sell" onclick="venderProp(${casa.id})">🏚️ R$${Math.floor((casa.preco??prop.preco??0)*.5)}</button>`:''}
           </div>
         </div>`;
       }).join('');
