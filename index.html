@@ -1380,7 +1380,7 @@ function atualizarUI(){
   }
   renderBoard();
   const tabOn=document.querySelector('.stab.on');
-  if(tabOn)renderAba(tabOn.id.replace('tab-',''));
+  if(tabOn){try{renderAba(tabOn.id.replace('tab-',''));}catch(e){console.warn('[renderAba]',e);}}
   const ativos=jogo.ordem.filter(id=>jogo.jogadores[id]?.ativo);
   if(ativos.length<=1&&!document.getElementById('tela-fim').classList.contains('active')){
     encerrar();return;
@@ -2054,7 +2054,8 @@ async function comprarProp(id){
     // Zerar eventoAtual ANTES do fbSet — impede restaurarEvento de reabrir card de compra
     j.eventoAtual=null;
     snd(mono?'vitoria':'comprar');
-    await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();renderBoard();
+    await fbSet('jogos/'+codigoSala,j);jogo=j;
+    try{atualizarUI();renderBoard();}catch(e){console.warn('[ui]',e);}
     mostrarEvento({
       emoji:casa.emoji,titulo:mono?'⭐ MONOPÓLIO!':'Imóvel comprado!',
       narrativa:mono?`Você comprou todos os imóveis de ${grupoL(casa.grupo)}! O aluguel dobrou para todos do grupo! Agora ganhe R$ ${prop.aluguel*2},00 por visita!`:`Parabéns! ${casa.nome} é seu. Cada vez que alguém parar aqui, você recebe R$ ${prop.aluguel},00!`,
@@ -2318,7 +2319,7 @@ function encerrar(){
 function aba(t){
   document.querySelectorAll('.stab').forEach(b=>{b.classList.remove('on');b.style.color='';});
   document.getElementById('tab-'+t).classList.add('on');
-  renderAba(t);
+  try{renderAba(t);}catch(e){console.warn('[renderAba]',e);}
 }
 
 function abrirSb(){
