@@ -285,6 +285,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 .acao-s{color:var(--cinza2);font-size:.73rem}
 .btn-mini{padding:.4rem .7rem;border:1.5px solid var(--borda);border-radius:8px;background:var(--card);color:var(--texto);font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;transition:all .15s}
 .btn-mini:hover{border-color:var(--azul);color:var(--azul)}
+.btn-mini-warn{border-color:var(--amarelo)!important;color:var(--amarelo)!important;background:var(--amarelo-bg)!important;animation:pisca .9s ease-in-out infinite}
+@keyframes pisca{0%,100%{opacity:1}50%{opacity:.55}}
 
 /* MODAIS */
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:300;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(8px)}
@@ -618,6 +620,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
         <div class="acao-s" id="acao-s">— pressione Espaço para rolar</div>
       </div>
       <button class="btn-mini" onclick="aba('banco');abrirSb()">💸 Banco</button>
+      <button class="btn-mini btn-mini-warn" id="btn-pular-disco" style="display:none" onclick="hostPularTurno()" title="Jogador desconectado — pular turno">⚡ Pular turno</button>
       <button class="btn-dado-big" id="btn-dado" onclick="rolarDado()" disabled>🎲 Rolar Dado!</button>
     </div>
   </div>
@@ -1378,6 +1381,14 @@ function atualizarUI(){
     document.getElementById('acao-t').textContent=jA?'Vez de '+jA.nome:'—';
     document.getElementById('acao-s').textContent='Aguardando...';
   }
+  // Botão host: pular turno de jogador desconectado
+  const btnPular=document.getElementById('btn-pular-disco');
+  if(btnPular){
+    const idAtual=jogo.ordem[jogo.turnoIdx];
+    const jgAtual=jogo.jogadores[idAtual];
+    const souHost=meuId===jogo.ordem[0];
+    btnPular.style.display=(souHost&&idAtual!==meuId&&jgAtual?.online===false)?'inline-flex':'none';
+  }
   renderBoard();
   const tabOn=document.querySelector('.stab.on');
   if(tabOn){try{renderAba(tabOn.id.replace('tab-',''));}catch(e){console.warn('[renderAba]',e);}}
@@ -1870,7 +1881,7 @@ async function processarCasa(j){
     jogo=j;
     switch(casa.tipo){
       case 'inicio':   toast('🏁 Início! +R$200');await proxTurno();break;
-      case 'descanso': toast('😎 Férias em BC!');setTimeout(proxTurno,1500);break;
+      case 'descanso': await abrirDescanso(casa,j);break;
       case 'propriedade': abrirProp(casa,j);break;
       case 'carta-sorte': await abrirCarta(j);break;
       case 'imposto':  await abrirImposto(casa,j);break;
@@ -1881,6 +1892,52 @@ async function processarCasa(j){
     logErro('processarCasa: '+String(err?.message||err), {posicao:j?.jogadores?.[j?.ordem?.[j?.turnoIdx]]?.posicao});
     setTimeout(proxTurno,1000);
   }
+}
+
+// =====================================================
+// FÉRIAS EM BC! — Cobrar R$100
+// =====================================================
+async function abrirDescanso(casa,j){
+  const jg=j.jogadores[j.ordem[j.turnoIdx]];
+  const custo=100;
+  jg.saldo-=custo;
+  jg.transacoes=jg.transacoes||[];
+  jg.transacoes.push({desc:'Férias em BC!',valor:custo,tipo:'saida',data:hoje()});
+  j.log.push({msg:`😎 ${jg.nome} foi de férias e gastou R$${custo}`,tipo:'lv'});
+  j.eventoAtual=null;
+  snd('perder');
+  await fbSet('jogos/'+codigoSala,j);jogo=j;
+  try{atualizarUI();renderBoard();}catch(e){console.warn('[descanso ui]',e);}
+  mostrarEvento({
+    emoji:'😎',
+    titulo:'Férias em BC!',
+    narrativa:'Que delícia! Mas férias custam dinheiro — passeio, hospedagem, alimentação...',
+    valor:-custo,
+    cor:'#FFD23F',
+    tagHtml:'💡 EF04MA24 — Lazer e férias fazem parte do planejamento financeiro!',
+    btnTxt:'Entendido! 😅',
+    btnFn:proxTurno
+  });
+}
+
+// =====================================================
+// HOST — Pular turno de jogador desconectado
+// =====================================================
+async function hostPularTurno(){
+  if(!jogo||jogo.ordem[0]!==meuId)return;
+  const idAtual=jogo.ordem[jogo.turnoIdx];
+  const jgAtual=jogo.jogadores[idAtual];
+  if(!jgAtual||jgAtual.online!==false){toast('Jogador ainda está conectado!');return;}
+  const j=JSON.parse(JSON.stringify(jogo));
+  j.log.push({msg:`⚡ Host pulou o turno de ${jgAtual.nome} (desconectado).`,tipo:'ls'});
+  let prox=(j.turnoIdx+1)%j.ordem.length,t=0;
+  while(!j.jogadores[j.ordem[prox]]?.ativo&&t++<j.ordem.length)
+    prox=(prox+1)%j.ordem.length;
+  j.turnoIdx=prox;j.turno++;
+  j.fase='aguardando-dado';j.eventoAtual=null;
+  await fbSet('jogos/'+codigoSala,j);
+  jogo=j;atualizarUI();
+  toast(`⚡ Turno de ${jgAtual.nome} pulado!`);
 }
 
 // =====================================================
@@ -2529,31 +2586,46 @@ function pararVerificacaoDesconectados(){
 
 async function verificarDesconectados(){
   if(!jogo||MODO_DEMO||!db)return;
-  if(jogo.fase!=='aguardando-dado')return; // Nunca interrompe turno ativo
-  if(jogo.ordem[0]!==meuId)return;
-  const TIMEOUT=2*60*1000; // 2 minutos
+  if(jogo.ordem[0]!==meuId)return; // só host executa
+  const TIMEOUT_PULAR=60*1000;   // 60s → pular turno travado
+  const TIMEOUT_REMOVER=2*60*1000; // 2min → remover do jogo
   const agora=Date.now();
   let precisaAtualizar=false;
   const j=JSON.parse(JSON.stringify(jogo));
+
+  // ── 1. Pular turno se o jogador da vez está desconectado há > 60s ──
+  const idAtual=j.ordem[j.turnoIdx];
+  const jgAtual=j.jogadores[idAtual];
+  if(jgAtual?.ativo&&jgAtual.online===false&&jgAtual.desconectadoEm){
+    const elapsed=agora-jgAtual.desconectadoEm;
+    if(elapsed>TIMEOUT_PULAR){
+      j.log.push({msg:`⚡ Turno de ${jgAtual.nome} pulado automaticamente (desconectado há ${Math.round(elapsed/1000)}s).`,tipo:'ls'});
+      let prox=(j.turnoIdx+1)%j.ordem.length,t=0;
+      while(!j.jogadores[j.ordem[prox]]?.ativo&&t++<j.ordem.length)
+        prox=(prox+1)%j.ordem.length;
+      j.turnoIdx=prox;j.turno++;
+      j.fase='aguardando-dado';j.eventoAtual=null;
+      precisaAtualizar=true;
+    }
+  }
+
+  // ── 2. Remover jogadores desconectados há > 2 min ──
   for(const id of j.ordem){
     const jg=j.jogadores[id];
     if(!jg||!jg.ativo)continue;
     if(jg.online===false&&jg.desconectadoEm){
-      const elapsed=agora-jg.desconectadoEm;
-      if(elapsed>TIMEOUT){
-        // Liberar imóveis e remover jogador
+      if(agora-jg.desconectadoEm>TIMEOUT_REMOVER){
         (jg.propriedades||[]).forEach(pid=>{if(j.props&&j.props[pid]){j.props[pid].dono=null;j.props[pid].casas=0;j.props[pid].hotel=false;}});
-        jg.propriedades=[];
-        jg.ativo=false;
-        j.log.push({msg:`⚡ ${jg.nome} foi removido por desconexão (2 min). Imóveis liberados.`,tipo:'ls'});
+        jg.propriedades=[];jg.ativo=false;
+        j.log.push({msg:`⚡ ${jg.nome} removido por desconexão (2 min). Imóveis liberados.`,tipo:'ls'});
         precisaAtualizar=true;
       }
     }
   }
+
   if(precisaAtualizar){
     await fbSet('jogos/'+codigoSala,j);
-    jogo=j;
-    atualizarUI();
+    jogo=j;atualizarUI();
   }
 }
 
