@@ -727,8 +727,24 @@ let meuId = null;
 let meuAv = 0;
 let jogo = null;
 let aluguelPend = null;
+let _aluguelProcessando = false;
 let quizAtivo = null;
 let _evFechouEm = 0; // timestamp do último fecharEvento — anti-race na reconexão
+
+// ── Device ID persistente (bloqueia entrada dupla) ──
+function getDeviceId(){
+  let id;
+  try{id=localStorage.getItem('bc_device');}catch(e){}
+  if(!id){
+    try{
+      const arr=new Uint8Array(8);
+      crypto.getRandomValues(arr);
+      id='d_'+Array.from(arr,b=>b.toString(16).padStart(2,'0')).join('');
+      localStorage.setItem('bc_device',id);
+    }catch(e){id='d_'+Date.now();}
+  }
+  return id;
+}
 
 try {
   firebase.initializeApp(FB_CONFIG);
@@ -1207,7 +1223,7 @@ async function criarSala(){
   meuId='host_'+Date.now();
   codigoSala=gerarCodigo();
   const sala={codigo:codigoSala,iniciado:false,criado:Date.now(),
-    jogadores:{[meuId]:{id:meuId,nome:nome,avatar:AVATARES[meuAv],cor:CORES[0],slot:0}}};
+    jogadores:{[meuId]:{id:meuId,nome:nome,avatar:AVATARES[meuAv],cor:CORES[0],slot:0,deviceId:getDeviceId()}}};
   await fbSet('salas/'+codigoSala,sala);
   document.getElementById('cod-show').textContent=codigoSala;
   document.getElementById('mod-cod-val').textContent=codigoSala;
@@ -1218,19 +1234,23 @@ async function criarSala(){
 
 async function entrarSala(){
   const nome=document.getElementById('l-nome').value.trim()||'Aluno';
-  const cod=document.getElementById('l-codigo').value.trim();
+  const cod=document.getElementById('l-codigo').value.trim().toUpperCase();
   if(!cod||cod.length!==6){toast('⚠️ Digite o código de 6 caracteres!');return;}
   const snap=await fbGet('salas/'+cod);
   const sala=snap.val();
   if(!sala){toast('❌ Sala não encontrada!');return;}
   if(sala.iniciado){toast('⚠️ Esse jogo já começou!');return;}
+  const deviceId=getDeviceId();
   const jogadores=sala.jogadores||{};
+  // Bloquear mesmo dispositivo entrando mais de uma vez
+  const jaEntrou=Object.values(jogadores).find(j=>j.deviceId===deviceId);
+  if(jaEntrou){toast('⚠️ Você já está nesta sala como "'+escHtml(jaEntrou.nome)+'"!');return;}
   const qtd=Object.keys(jogadores).length;
   if(qtd>=6){toast('⚠️ Sala cheia!');return;}
   meuId='p'+Date.now();
   codigoSala=cod;
   await fbUpdate('salas/'+cod+'/jogadores/'+meuId,
-    {id:meuId,nome:nome,avatar:AVATARES[meuAv],cor:CORES[qtd%CORES.length],slot:qtd});
+    {id:meuId,nome:nome,avatar:AVATARES[meuAv],cor:CORES[qtd%CORES.length],slot:qtd,deviceId});
   document.getElementById('cod-show').textContent=cod;
   document.getElementById('mod-cod-val').textContent=cod;
   snd('click');
@@ -2049,40 +2069,50 @@ function abrirProp(casa,j){
 }
 
 async function confirmarAluguel(){
-  if(!aluguelPend)return;
-  const {prop,dono,jg,casa,mono}=aluguelPend;
-  const aluguelReal=aluguelPend.aluguel||calcularAluguel(prop,mono);
-  const j=JSON.parse(JSON.stringify(jogo));
-  const jgR=j.jogadores[jg.id],donoR=j.jogadores[dono.id];
-  if(jgR.saldo<aluguelReal){
-    // FALÊNCIA — libera imóveis de volta ao banco
-    (jgR.propriedades||[]).forEach(pid=>{if(j.props[pid]){j.props[pid].dono=null;j.props[pid].casas=0;j.props[pid].hotel=false;}});
-    jgR.propriedades=[];
-    jgR.ativo=false;
-    fecharEvento(null);
-    document.getElementById('mod-faliu-m').textContent=
-      `${jgR.avatar} ${jgR.nome} não tinha saldo para pagar R$ ${aluguelReal},00 de aluguel e FALIU! Seus imóveis voltaram ao mercado.`;
-    j.log.push({msg:`💀 ${jgR.nome} faliu! Imóveis liberados.`,tipo:'ls'});
-    await fbSet('jogos/'+codigoSala,j);jogo=j;
-    aluguelPend=null;
-    snd('perder');
-    am('mod-faliu');atualizarUI();return;
+  if(!aluguelPend||_aluguelProcessando)return;
+  _aluguelProcessando=true;
+  const pend=aluguelPend;
+  aluguelPend=null; // limpa imediatamente para evitar dupla execução
+  try{
+    const {prop,dono,casa,mono}=pend;
+    const aluguelReal=pend.aluguel||calcularAluguel(prop,mono);
+    const j=JSON.parse(JSON.stringify(jogo));
+    // Usa meuId diretamente — é sempre o pagador neste cliente
+    const jgR=j.jogadores[meuId], donoR=j.jogadores[dono?.id];
+    if(!jgR||!donoR){
+      logErro('confirmarAluguel: jogador não encontrado meuId='+meuId+' donoId='+dono?.id);
+      setTimeout(proxTurno,800);return;
+    }
+    if(jgR.saldo<aluguelReal){
+      // FALÊNCIA — libera imóveis de volta ao banco
+      (jgR.propriedades||[]).forEach(pid=>{if(j.props[pid]){j.props[pid].dono=null;j.props[pid].casas=0;j.props[pid].hotel=false;}});
+      jgR.propriedades=[];
+      jgR.ativo=false;
+      fecharEvento(null);
+      document.getElementById('mod-faliu-m').textContent=
+        `${jgR.avatar} ${jgR.nome} não tinha saldo para pagar R$ ${aluguelReal},00 de aluguel e FALIU! Seus imóveis voltaram ao mercado.`;
+      j.log.push({msg:`💀 ${jgR.nome} faliu! Imóveis liberados.`,tipo:'ls'});
+      await fbSet('jogos/'+codigoSala,j);jogo=j;
+      snd('perder');
+      am('mod-faliu');atualizarUI();return;
+    }
+    jgR.saldo-=aluguelReal;donoR.saldo+=aluguelReal;j.reciboN++;
+    jgR.transacoes.push({desc:`Aluguel pago — ${casa.nome}${mono?' (2×)':''}`,valor:aluguelReal,tipo:'saida',data:hoje()});
+    donoR.transacoes.push({desc:`Aluguel recebido — ${casa.nome}${mono?' (2×)':''}`,valor:aluguelReal,tipo:'entrada',data:hoje()});
+    j.log.push({msg:`💸 ${jgR.nome} pagou R$${aluguelReal} de aluguel para ${donoR.nome}${mono?' ⭐':''}`,tipo:'ls'});
+    snd('pagar');
+    await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
+    mostrarEvento({
+      emoji:'✅',titulo:'Aluguel pago!',
+      narrativa:'Transação registrada. Acompanhe seu extrato na aba Banco.',
+      valor:-aluguelReal,cor:'var(--verde)',
+      reciboHtml:`<div class="r-t">✅ RECIBO QUITADO</div><div class="r-n">Nº ${j.reciboN} — QUITADO</div><div class="r-l"><span>De</span><span>${jgR.avatar} ${escHtml(jgR.nome||'')}</span></div><div class="r-l"><span>Para</span><span>${donoR.avatar} ${escHtml(donoR.nome||'')}</span></div><div class="r-l"><span>Imóvel</span><span>${casa.nome}</span></div><div class="r-l"><span>Valor</span><span class="rn">− R$ ${aluguelReal},00</span></div><div class="r-l"><span>Recebido</span><span class="rp">+ R$ ${aluguelReal},00</span></div><div class="r-l"><span><strong>Seu saldo</strong></span><span><strong>R$ ${jgR.saldo.toFixed(0)},00</strong></span></div>`,
+      tagHtml:'💡 Aluguel é renda de quem investiu em imóveis. Compre os seus!',
+      btnTxt:'Entendido! Avançar',btnFn:proxTurno
+    });
+  }finally{
+    _aluguelProcessando=false;
   }
-  jgR.saldo-=aluguelReal;donoR.saldo+=aluguelReal;j.reciboN++;
-  jgR.transacoes.push({desc:`Aluguel pago — ${casa.nome}${mono?' (2×)':''}`,valor:aluguelReal,tipo:'saida',data:hoje()});
-  donoR.transacoes.push({desc:`Aluguel recebido — ${casa.nome}${mono?' (2×)':''}`,valor:aluguelReal,tipo:'entrada',data:hoje()});
-  j.log.push({msg:`💸 ${jgR.nome} pagou R$${aluguelReal} de aluguel para ${donoR.nome}${mono?' ⭐':''}`,tipo:'ls'});
-  aluguelPend=null;
-  snd('pagar');
-  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
-  mostrarEvento({
-    emoji:'✅',titulo:'Aluguel pago!',
-    narrativa:'Transação registrada. Acompanhe seu extrato na aba Banco.',
-    valor:-aluguelReal,cor:'var(--verde)',
-    reciboHtml:`<div class="r-t">✅ RECIBO QUITADO</div><div class="r-n">Nº ${j.reciboN} — QUITADO</div><div class="r-l"><span>De</span><span>${jgR.avatar} ${escHtml(jgR.nome||'')}</span></div><div class="r-l"><span>Para</span><span>${donoR.avatar} ${escHtml(donoR.nome||'')}</span></div><div class="r-l"><span>Imóvel</span><span>${casa.nome}</span></div><div class="r-l"><span>Valor</span><span class="rn">− R$ ${aluguelReal},00</span></div><div class="r-l"><span>Recebido</span><span class="rp">+ R$ ${aluguelReal},00</span></div><div class="r-l"><span><strong>Seu saldo</strong></span><span><strong>R$ ${jgR.saldo.toFixed(0)},00</strong></span></div>`,
-    tagHtml:'💡 Aluguel é renda de quem investiu em imóveis. Compre os seus!',
-    btnTxt:'Entendido! Avançar',btnFn:proxTurno
-  });
 }
 
 async function comprarProp(id){
@@ -2371,6 +2401,38 @@ function encerrar(){
 }
 
 // =====================================================
+// HOST — CONTROLE DE JOGADOR OFFLINE
+// =====================================================
+async function hostPularVez(id){
+  if(!jogo||jogo.ordem[0]!==meuId){toast('Só o professor pode fazer isso.');return;}
+  if(jogo.ordem[jogo.turnoIdx]!==id){toast('Não é a vez deste jogador.');return;}
+  const nome=jogo.jogadores[id]?.nome||'Jogador';
+  toast('⏭️ Vez de '+nome+' pulada!');
+  snd('click');
+  await proxTurno();
+}
+
+async function hostRemoverJogador(id){
+  if(!jogo||jogo.ordem[0]!==meuId){toast('Só o professor pode fazer isso.');return;}
+  const jg=jogo.jogadores[id];
+  if(!jg||!jg.ativo){toast('Jogador não encontrado ou já inativo.');return;}
+  if(!confirm('Remover '+jg.nome+'?\nOs imóveis voltarão ao tabuleiro.')){return;}
+  const j=JSON.parse(JSON.stringify(jogo));
+  const jgR=j.jogadores[id];
+  (jgR.propriedades||[]).forEach(pid=>{
+    if(j.props&&j.props[pid]){j.props[pid].dono=null;j.props[pid].casas=0;j.props[pid].hotel=false;}
+  });
+  jgR.propriedades=[];
+  jgR.ativo=false;
+  j.log.push({msg:`🚫 ${jgR.nome} removido pelo professor. Imóveis liberados.`,tipo:'ls'});
+  const eraSuaVez=j.ordem[j.turnoIdx]===id;
+  if(eraSuaVez){j.fase='aguardando-dado';j.eventoAtual=null;}
+  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();renderBoard();
+  snd('perder');toast('🚫 '+jgR.nome+' removido!');
+  if(eraSuaVez)proxTurno();
+}
+
+// =====================================================
 // SIDEBAR
 // =====================================================
 function aba(t){
@@ -2404,10 +2466,12 @@ function renderAba(t){
   const minhaVez=ehMinhaVez();
 
   if(t==='jog'){
+    const isHost=j.ordem[0]===meuId;
     body.innerHTML=j.ordem.map(id=>{
       const jg=j.jogadores[id];
       const vez=j.ordem[j.turnoIdx]===id;
       const isEu=id===meuId;
+      const offline=jg.online===false;
       const ps=(jg.propriedades||[]).map(pid=>{
         const c=CASAS.find(x=>x.id===pid);
         const isMono=c?.grupo&&temMonopolio(id,c.grupo,j);
@@ -2416,18 +2480,24 @@ function renderAba(t){
           :`<span class="pbadge" style="background:${c?.cor||'#888'}40;color:${c?.cor||'#888'}">${c?.emoji||'🏠'}</span>`;
       }).join('');
       const patrimonio=jg.saldo+(jg.propriedades||[]).reduce((s,pid)=>{return s+(j.props?.[pid]?.preco||0);},0);
+      const hostBtns=isHost&&!isEu&&jg.ativo&&offline?`
+        <div style="display:flex;gap:.3rem;margin-top:.45rem;flex-wrap:wrap">
+          ${vez?`<button onclick="hostPularVez('${id}')" style="flex:1;padding:.22rem .3rem;border:1px solid var(--azul);background:var(--azul-bg);color:var(--azul);border-radius:5px;font-size:.62rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">⏭️ Pular vez</button>`:''}
+          <button onclick="hostRemoverJogador('${id}')" style="flex:1;padding:.22rem .3rem;border:1px solid var(--vermelho);background:var(--vermelho-bg);color:var(--vermelho);border-radius:5px;font-size:.62rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">🚫 Remover</button>
+        </div>`:'';
       return `<div class="pjc${vez?' vez':''}${isEu?' eu':''}">
         <div class="pjc-row">
           <div class="pjc-av" style="border-color:${jg.cor};background:${jg.cor}22">${jg.avatar}</div>
           <div style="flex:1;min-width:0">
             <div class="pjc-nome">${escHtml(jg.nome||'')}${isEu?' <span style="font-size:.6rem;color:var(--azul)">(você)</span>':''}
-            ${!isEu&&jg.online===false?'<span class="disco-badge aguardando" title="Desconectado — aguardando reconexão">⚡ desconectado</span>':''}</div>
+            ${!isEu&&offline?'<span class="disco-badge aguardando" title="Desconectado — aguardando reconexão">⚡ desconectado</span>':''}</div>
             <div class="pjc-saldo" style="color:${jg.cor}">R$ ${jg.saldo.toFixed(0)} <span style="font-size:.6rem;color:var(--cinza2)">(+R$${(patrimonio-jg.saldo).toFixed(0)} imóveis)</span></div>
             <div class="pjc-pos">📍 ${CASAS[jg.posicao]?.nome||'—'} • ${jg.voltas}/5 voltas</div>
           </div>
           ${vez?'<span class="vez-tag">VEZ</span>':''}
         </div>
         ${ps?`<div class="pjc-ps">${ps}</div>`:''}
+        ${hostBtns}
         ${!jg.ativo?'<div style="background:var(--vermelho-bg);color:var(--vermelho);font-size:.65rem;padding:.15rem .4rem;border-radius:4px;margin-top:.3rem;font-weight:700">FALIU</div>':''}
       </div>`;
     }).join('');
@@ -2586,46 +2656,20 @@ function pararVerificacaoDesconectados(){
 
 async function verificarDesconectados(){
   if(!jogo||MODO_DEMO||!db)return;
-  if(jogo.ordem[0]!==meuId)return; // só host executa
-  const TIMEOUT_PULAR=60*1000;   // 60s → pular turno travado
-  const TIMEOUT_REMOVER=2*60*1000; // 2min → remover do jogo
+  if(jogo.ordem[0]!==meuId)return; // apenas host verifica
+  // Pular vez automaticamente se jogador offline >90s travou o dado
+  // Remoção é MANUAL — professor clica "Remover" na aba Jogadores
+  if(jogo.fase!=='aguardando-dado')return;
   const agora=Date.now();
-  let precisaAtualizar=false;
-  const j=JSON.parse(JSON.stringify(jogo));
-
-  // ── 1. Pular turno se o jogador da vez está desconectado há > 60s ──
-  const idAtual=j.ordem[j.turnoIdx];
-  const jgAtual=j.jogadores[idAtual];
-  if(jgAtual?.ativo&&jgAtual.online===false&&jgAtual.desconectadoEm){
-    const elapsed=agora-jgAtual.desconectadoEm;
-    if(elapsed>TIMEOUT_PULAR){
-      j.log.push({msg:`⚡ Turno de ${jgAtual.nome} pulado automaticamente (desconectado há ${Math.round(elapsed/1000)}s).`,tipo:'ls'});
-      let prox=(j.turnoIdx+1)%j.ordem.length,t=0;
-      while(!j.jogadores[j.ordem[prox]]?.ativo&&t++<j.ordem.length)
-        prox=(prox+1)%j.ordem.length;
-      j.turnoIdx=prox;j.turno++;
-      j.fase='aguardando-dado';j.eventoAtual=null;
-      precisaAtualizar=true;
-    }
-  }
-
-  // ── 2. Remover jogadores desconectados há > 2 min ──
-  for(const id of j.ordem){
-    const jg=j.jogadores[id];
-    if(!jg||!jg.ativo)continue;
-    if(jg.online===false&&jg.desconectadoEm){
-      if(agora-jg.desconectadoEm>TIMEOUT_REMOVER){
-        (jg.propriedades||[]).forEach(pid=>{if(j.props&&j.props[pid]){j.props[pid].dono=null;j.props[pid].casas=0;j.props[pid].hotel=false;}});
-        jg.propriedades=[];jg.ativo=false;
-        j.log.push({msg:`⚡ ${jg.nome} removido por desconexão (2 min). Imóveis liberados.`,tipo:'ls'});
-        precisaAtualizar=true;
-      }
-    }
-  }
-
-  if(precisaAtualizar){
+  const atualId=jogo.ordem[jogo.turnoIdx];
+  const atualJg=jogo.jogadores[atualId];
+  if(!atualJg?.ativo||atualJg.online!==false||!atualJg.desconectadoEm)return;
+  if(agora-atualJg.desconectadoEm>90*1000){
+    const j=JSON.parse(JSON.stringify(jogo));
+    j.log.push({msg:`⏭️ Vez de ${atualJg.nome} pulada automaticamente (offline >90s).`,tipo:'lv'});
     await fbSet('jogos/'+codigoSala,j);
-    jogo=j;atualizarUI();
+    jogo=j;
+    proxTurno();
   }
 }
 
