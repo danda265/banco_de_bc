@@ -671,6 +671,22 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
   <button class="bm bm-p" onclick="fm('mod-faliu');proxTurno()">Continuar Jogo</button>
 </div></div>
 
+<div class="ov" id="mod-caixa"><div class="mbox">
+  <div style="text-align:center;margin-bottom:.5rem">
+    <div style="font-size:2.6rem">🏚️</div>
+    <div style="font-family:'Fredoka One',cursive;font-size:1.3rem;color:var(--amarelo)">Levantar caixa</div>
+  </div>
+  <div id="mod-caixa-body"></div>
+</div></div>
+
+<div class="ov" id="mod-offline"><div class="mbox" style="text-align:center">
+  <div style="font-size:2.6rem;margin-bottom:.3rem">📡</div>
+  <div style="font-family:'Fredoka One',cursive;font-size:1.25rem;color:var(--vermelho);margin-bottom:.5rem">Jogador sumiu</div>
+  <p id="mod-offline-m" style="font-size:.85rem;line-height:1.55;margin-bottom:.9rem"></p>
+  <button class="bm bm-p" onclick="confirmarRemocaoOffline()">🚫 Remover da partida</button>
+  <button class="ev-btn ev-btn2" style="margin-top:.35rem;font-size:.78rem" onclick="_remocaoAlvo=null;fm('mod-offline')">⏳ Continuar esperando</button>
+</div></div>
+
 <div class="ov" id="mod-cod"><div class="mbox" style="text-align:center">
   <div class="mh" style="justify-content:flex-end"><button class="mc" onclick="fm('mod-cod')">✕</button></div>
   <div style="font-size:2rem;margin-bottom:.4rem">🔗</div>
@@ -732,17 +748,31 @@ let quizAtivo = null;
 let _evFechouEm = 0; // timestamp do último fecharEvento — anti-race na reconexão
 
 // ── Device ID persistente (bloqueia entrada dupla) ──
+// Identificador do aparelho. Nos laboratórios da escola o localStorage às vezes
+// está bloqueado — antes disso gerava um id novo a cada F5 e o mesmo aluno
+// conseguia entrar várias vezes na sala. Agora tenta três canais antes de desistir.
 function getDeviceId(){
-  let id;
-  try{id=localStorage.getItem('bc_device');}catch(e){}
+  const CH='bc_device';
+  const ler=()=>{
+    try{const v=localStorage.getItem(CH);if(v)return v;}catch(e){}
+    try{const v=sessionStorage.getItem(CH);if(v)return v;}catch(e){}
+    try{const m=document.cookie.match(/(?:^|;\s*)bc_device=([^;]+)/);if(m)return decodeURIComponent(m[1]);}catch(e){}
+    return null;
+  };
+  const gravar=v=>{
+    try{localStorage.setItem(CH,v);}catch(e){}
+    try{sessionStorage.setItem(CH,v);}catch(e){}
+    try{document.cookie=CH+'='+encodeURIComponent(v)+';path=/;max-age=31536000;SameSite=Lax';}catch(e){}
+  };
+  let id=ler();
   if(!id){
     try{
       const arr=new Uint8Array(8);
       crypto.getRandomValues(arr);
       id='d_'+Array.from(arr,b=>b.toString(16).padStart(2,'0')).join('');
-      localStorage.setItem('bc_device',id);
-    }catch(e){id='d_'+Date.now();}
+    }catch(e){id='d_'+Math.random().toString(16).slice(2)+Date.now().toString(16);}
   }
+  gravar(id); // reforça nos três canais caso algum tenha sido limpo
   return id;
 }
 
@@ -837,7 +867,7 @@ CASAS.forEach(c=>{if(c.grupo){if(!GRUPOS[c.grupo])GRUPOS[c.grupo]=[];GRUPOS[c.gr
 const GRUPO_COR = {praias:'#3DB8FF',comercio:'#FFD23F',parques:'#00E5A0',turismo:'#FF4757',transporte:'#B08FFF'};
 
 // =====================================================
-// CARTAS EXPANDIDAS (20 cartas)
+// CARTAS (23 cartas — inclui golpe digital e seguro)
 // =====================================================
 const CARTAS = [
   {titulo:'Turista da Semana!',   desc:'Você foi eleito o turista mais simpático de BC!',          emoji:'🌟',tipo:'ganhar',valor:150},
@@ -860,10 +890,14 @@ const CARTAS = [
   {titulo:'Venda de Brigadeiros!',desc:'Você vendeu brigadeiros na escola e faturou bem!',        emoji:'🍫',tipo:'ganhar',valor:80},
   {titulo:'Óculos Novos!',        desc:'Precisou trocar os óculos. Saúde em dia!',               emoji:'👓',tipo:'pagar', valor:95},
   {titulo:'Bolsa Escolar!',       desc:'Você recebeu bolsa do programa municipal de estudantes!', emoji:'🎒',tipo:'ganhar',valor:160},
+
+  {titulo:'Golpe do PIX!',       desc:'Você devolveu um PIX "enviado por engano" e caiu no golpe.',  emoji:'📲',tipo:'pagar', valor:140},
+  {titulo:'Você Desconfiou!',    desc:'Não clicou no link falso do banco e protegeu sua conta.',     emoji:'🛡️',tipo:'ganhar',valor:100},
+  {titulo:'Seguro Acionado!',    desc:'Sua moto foi furtada, mas o seguro cobriu o prejuízo.',       emoji:'🔐',tipo:'ganhar',valor:120},
 ];
 
 // =====================================================
-// QUIZ EXPANDIDO (18 perguntas)
+// QUIZ (54 perguntas — cobre as 8 unidades do Na Ponta do Lápis)
 // =====================================================
 const QUIZ = [
   // ── Operações com dinheiro ───────────────────────────────────────
@@ -998,6 +1032,147 @@ const QUIZ = [
   {p:'Qual das opções representa um ORÇAMENTO EQUILIBRADO?',
    ops:['Receita < Despesa','Receita = Despesa (sem sobras)','Receita > Despesa (sobra para poupar)','Gastar tudo e depois ver'],c:2,
    exp:'Saudável é gastar menos do que ganha, para sempre sobrar algo para poupar e investir!',bonus:100},
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   UNIDADE 1 — CIRCULAÇÃO DO DINHEIRO   (foco: formação de preços e câmbio)
+   Lacuna coberta: câmbio (o jogo não tinha nada) + formação de preço.
+   ───────────────────────────────────────────────────────────────────── */
+
+  {p:'Um turista troca 100 dólares e recebe R$ 550,00. Qual é a taxa de câmbio do dia?',
+   ops:['R$ 5,50 por dólar','R$ 55,00 por dólar','R$ 0,55 por dólar','R$ 100,00 por dólar'],c:0,
+   exp:'Câmbio = 550 ÷ 100 = R$ 5,50. É quanto vale 1 dólar em reais naquele dia!',bonus:120},
+
+  {p:'Com o dólar a R$ 5,00, quanto custa em reais um tênis importado de US$ 80?',
+   ops:['R$ 300,00','R$ 400,00','R$ 450,00','R$ 85,00'],c:1,
+   exp:'80 × 5 = R$ 400,00. Quando o dólar sobe, tudo que é importado fica mais caro!',bonus:110},
+
+  {p:'Por que a diária dos hotéis de BC sobe tanto no verão?',
+   ops:['A prefeitura obriga','Muita procura e poucas vagas disponíveis','Porque o dólar cai','Porque a internet fica mais cara'],c:1,
+   exp:'Preço se forma pela oferta e demanda: muita gente querendo e pouca vaga, o preço sobe.',bonus:100},
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   UNIDADE 2 — PLANEJAMENTO   (foco: orçamento e custo de oportunidade)
+   Lacuna coberta: custo de oportunidade (orçamento já estava forte).
+   ───────────────────────────────────────────────────────────────────── */
+
+  {p:'O que é CUSTO DE OPORTUNIDADE?',
+   ops:['O preço na etiqueta','O que você abre mão ao fazer uma escolha','Um tipo de imposto','O juro cobrado pelo banco'],c:1,
+   exp:'É a melhor opção que você deixou de lado. Toda escolha custa outra coisa!',bonus:100},
+
+  {p:'Você tem R$ 200,00 e escolhe comprar um fone em vez de guardar para a viagem de fim de ano. O que você perdeu ao escolher?',
+   ops:['Nada, o dinheiro era seu','A viagem — esse é o custo de oportunidade','R$ 200,00 de imposto','O valor do fone'],c:1,
+   exp:'Não dá para ter os dois. O que ficou para trás é o custo de oportunidade da sua escolha.',bonus:120},
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   UNIDADE 3 — CONSUMO   (foco: publicidade e consumo consciente)
+   Lacuna coberta: publicidade (o jogo só tinha conta de desconto).
+   ───────────────────────────────────────────────────────────────────── */
+
+  {p:'Um influenciador mostra um produto sem avisar que foi pago para isso. O que é isso?',
+   ops:['Opinião sincera dele','Publicidade disfarçada — deveria estar sinalizada','Uma promoção do governo','Um sorteio'],c:1,
+   exp:'Publicidade paga precisa ser identificada (#publi). Sem o aviso, você acha que é opinião — e não é.',bonus:120},
+
+  {p:'"SÓ HOJE! ÚLTIMAS 3 UNIDADES!" — para que serve esse tipo de anúncio?',
+   ops:['Informar o estoque de verdade','Criar pressa para você comprar sem pensar','Baixar o preço do produto','Reduzir o imposto da loja'],c:1,
+   exp:'É gatilho de urgência: a pressa desliga a comparação de preços. Respire e pesquise antes.',bonus:110},
+
+  {p:'Qual destas atitudes é CONSUMO CONSCIENTE?',
+   ops:['Comprar por impulso na primeira loja','Comparar preços e perguntar "eu preciso mesmo disso?"','Parcelar tudo em 12x sem olhar','Comprar porque o amigo comprou'],c:1,
+   exp:'Consumo consciente é decidir pela necessidade e pelo preço justo — não pela propaganda.',bonus:100},
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   UNIDADE 4 — POUPANÇA E INVESTIMENTO   (foco: investimentos e aposentadoria)
+   Lacuna coberta: aposentadoria e previdência (não havia nenhuma menção).
+   ───────────────────────────────────────────────────────────────────── */
+
+  {p:'Para que serve o INSS descontado do salário do trabalhador?',
+   ops:['Pagar a escola pública','Garantir aposentadoria e auxílios ao trabalhador','Comprar carros para o governo','Financiar os bancos'],c:1,
+   exp:'INSS é a Previdência Social: garante aposentadoria, auxílio-doença e outros direitos.',bonus:110},
+
+  {p:'Por que começar a poupar cedo faz tanta diferença na aposentadoria?',
+   ops:['Porque o banco dá desconto para jovem','Porque o dinheiro rende juros por muito mais tempo','Porque jovem paga menos imposto','Não faz diferença nenhuma'],c:1,
+   exp:'Juros sobre juros: quanto mais tempo rendendo, maior a bola de neve — desta vez a seu favor!',bonus:120},
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   UNIDADE 5 — CRÉDITO E ENDIVIDAMENTO   (foco: juros e contratos)
+   Lacuna coberta: contratos (juros já estavam bem cobertos).
+   ───────────────────────────────────────────────────────────────────── */
+
+  {p:'Antes de assinar um contrato de financiamento, o que é essencial olhar?',
+   ops:['Só o valor da parcela','A taxa de juros e o valor TOTAL a pagar no fim','A cor do papel','O nome do gerente'],c:1,
+   exp:'Parcela pequena pode esconder juros altos. Olhe sempre quanto você vai pagar no total!',bonus:120},
+
+  {p:'O que costuma estar nas "letras miúdas" de um contrato?',
+   ops:['Enfeite do documento','Multas, taxas e seguros embutidos que passam despercebidos','Erro de impressão','A assinatura do vendedor'],c:1,
+   exp:'É ali que moram as surpresas. Leia antes de assinar — depois vale o que está escrito.',bonus:110},
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   UNIDADE 6 — RENDA E EMPREENDEDORISMO   (foco: trabalho e MEI)
+   Lacuna coberta: MEI e formalização (o jogo só tinha venda informal).
+   ───────────────────────────────────────────────────────────────────── */
+
+  {p:'Você vende brigadeiros e quer emitir nota fiscal legalmente. O que precisa abrir?',
+   ops:['Uma conta poupança','Um MEI (Microempreendedor Individual)','Um cartão de crédito','Uma sociedade anônima'],c:1,
+   exp:'MEI é o jeito mais simples de formalizar: CNPJ próprio, nota fiscal e contribuição mensal baixa.',bonus:120},
+
+  {p:'Qual é uma vantagem de ser MEI em vez de vender na informalidade?',
+   ops:['Nunca pagar nada','Ter CNPJ, emitir nota e contar tempo para a aposentadoria','Ficar isento de todo imposto para sempre','Poder vender sem ter cliente'],c:1,
+   exp:'MEI dá CNPJ, acesso a crédito melhor e conta como contribuição ao INSS.',bonus:120},
+
+  {p:'Qual a diferença entre trabalho com carteira assinada e trabalho informal?',
+   ops:['Nenhuma diferença','Carteira assinada garante férias, 13º, FGTS e INSS','O informal paga mais imposto','Com carteira ninguém pode ser demitido'],c:1,
+   exp:'Carteira assinada vem com uma rede de proteção. Na informalidade, essa rede não existe.',bonus:110},
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   UNIDADE 7 — RISCO E PROTEÇÃO   (foco: golpes digitais e seguros)
+   Lacuna coberta: era a unidade mais vazia do jogo — zero golpe, zero seguro.
+   ───────────────────────────────────────────────────────────────────── */
+
+  {p:'Chega um PIX "enviado por engano" e a pessoa pede que você devolva na hora. O que fazer?',
+   ops:['Devolver rápido na chave que ela mandou','Não devolver por fora: conferir no app e falar com o banco','Gastar o dinheiro','Bloquear e esquecer o assunto'],c:1,
+   exp:'Golpe clássico: o PIX original é estornado depois e você perde as duas quantias. Resolva sempre pelo banco.',bonus:130},
+
+  {p:'Um SMS avisa que seu cartão foi bloqueado e manda clicar num link. O que é isso?',
+   ops:['Aviso oficial do banco','Phishing: golpe para roubar sua senha','Uma promoção','Uma cobrança de imposto'],c:1,
+   exp:'Phishing é isca. Banco não pede senha por link — entre pelo aplicativo oficial, digitando você mesmo.',bonus:130},
+
+  {p:'Alguém oferece um "investimento que rende 20% ao mês, garantido". Qual a atitude certa?',
+   ops:['Investir tudo rápido antes que acabe','Desconfiar: rendimento alto e garantido não existe','Pegar empréstimo para investir mais','Chamar os amigos para entrar junto'],c:1,
+   exp:'Se parece bom demais, é golpe (pirâmide). Investimento de verdade não promete lucro alto e fixo.',bonus:130},
+
+  {p:'Para que serve um SEGURO?',
+   ops:['Aumentar seu salário','Transferir o risco de um prejuízo grande para a seguradora','Pagar menos imposto','Render juros todo mês'],c:1,
+   exp:'Você paga um valor pequeno e regular para não levar um prejuízo enorme de uma vez só.',bonus:110},
+
+  {p:'Qual senha protege melhor o seu aplicativo do banco?',
+   ops:['Sua data de nascimento','Uma senha longa e única, com verificação em duas etapas','123456','O nome do seu time'],c:1,
+   exp:'Senha longa e exclusiva + verificação em duas etapas. Nunca repita a senha do banco em outro site!',bonus:120},
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   UNIDADE 8 — CENÁRIO FINANCEIRO E CIDADANIA
+   (foco: impostos e direitos do consumidor)
+   Lacuna coberta: direitos do consumidor (impostos já eram o ponto forte).
+   ───────────────────────────────────────────────────────────────────── */
+
+  {p:'Você comprou um fone pela internet e se arrependeu. Em quanto tempo pode desistir da compra?',
+   ops:['Não pode desistir','7 dias corridos, pelo direito de arrependimento','30 dias','1 ano'],c:1,
+   exp:'Compra feita fora da loja física (internet ou telefone) dá 7 dias para desistir e receber o dinheiro de volta.',bonus:120},
+
+  {p:'O produto veio com defeito e a loja se recusa a resolver. Onde reclamar?',
+   ops:['Em lugar nenhum','No Procon ou no consumidor.gov.br','Só nas redes sociais','Na secretaria da escola'],c:1,
+   exp:'O Código de Defesa do Consumidor te protege. Procon e consumidor.gov.br são canais oficiais e gratuitos.',bonus:120},
+
+  {p:'Para que serve pedir a NOTA FISCAL da sua compra?',
+   ops:['Só para enfeitar a carteira','Comprovar a compra, garantir a troca e registrar o imposto pago','Para ganhar desconto sempre','Não serve para nada'],c:1,
+   exp:'É sua prova de compra para a garantia — e é por ela que o imposto chega às escolas e hospitais de BC!',bonus:110},
 ];
 
 const CORES = ['#FF4757','#3DB8FF','#00E5A0','#FFD23F','#B08FFF','#FF9F43'];
@@ -1128,6 +1303,67 @@ function fbSet(path,val){
   if(MODO_DEMO){setPath(_demo,path,val);return Promise.resolve();}
   return db.ref(path).set(val);
 }
+
+// ─── Gravação segura do estado do jogo ──────────────
+// Antes: cada ação gravava o jogo INTEIRO a partir do espelho local.
+// Se a internet caísse, a escrita ficava na fila e, ao voltar,
+// sobrescrevia tudo que os outros jogadores fizeram no intervalo —
+// era isso que zerava saldos e falia quem tinha dinheiro.
+// Agora usa transação + contador de revisão: se o estado do servidor
+// mudou desde a leitura, a escrita é ABORTADA e o cliente recarrega.
+// O cliente está realmente conectado agora? (.info/connected é local e responde na hora)
+function conexaoViva(){
+  return new Promise(resolve=>{
+    if(!db)return resolve(false);
+    let respondeu=false;
+    const ref=db.ref('.info/connected');
+    const cb=ref.on('value',s=>{
+      if(respondeu)return;
+      respondeu=true;try{ref.off('value',cb);}catch(e){}
+      resolve(s.val()===true);
+    });
+    setTimeout(()=>{if(!respondeu){respondeu=true;try{ref.off('value',cb);}catch(e){}resolve(false);}},2500);
+  });
+}
+
+// Uma gravação por vez neste cliente. Duas transações empilhadas no mesmo
+// caminho travam a fila do Firebase e o jogo para de salvar.
+let _salvando=false;
+
+async function salvarJogo(j){
+  if(MODO_DEMO||!db){setPath(_demo,'jogos/'+codigoSala,j);jogo=j;return true;}
+  if(_salvando){toast('⏳ Salvando a jogada anterior — aguarde um instante.');return false;}
+  _salvando=true;
+  try{
+    // Nunca enfileirar escrita com o cliente offline: a transação ficaria
+    // pendurada e entupiria as gravações seguintes ao reconectar.
+    if(!await conexaoViva()){
+      toast('📡 Sem conexão — a jogada não foi salva. Tente de novo quando voltar.');
+      return false;
+    }
+    const base=(jogo&&jogo.revisao)||0;
+    j.revisao=base+1;
+    // Sem timeout aqui de propósito: abandonar a transação não a cancela.
+    const res=await db.ref('jogos/'+codigoSala).transaction(cur=>{
+      if(cur===null)return j;              // partida ainda não existe
+      if((cur.revisao||0)!==base)return;   // undefined = aborta a transação
+      return j;
+    },undefined,false);
+    if(res&&res.committed){jogo=j;return true;}
+    // Perdeu a corrida: outro cliente gravou antes. Recarrega o estado real.
+    const snap=await fbGet('jogos/'+codigoSala);
+    const atual=snap.val();
+    if(atual){jogo=atual;try{atualizarUI();}catch(e){}}
+    toast('🔄 O jogo foi atualizado — refaça a jogada.');
+    return false;
+  }catch(e){
+    logErro('salvarJogo: '+String(e&&e.message||e));
+    toast('⚠️ Falha ao salvar. Verifique a conexão.');
+    return false;
+  }finally{
+    _salvando=false;
+  }
+}
 function fbUpdate(path,val){
   if(MODO_DEMO){setPath(_demo,path,val);return Promise.resolve();}
   return db.ref(path).update(val);
@@ -1242,9 +1478,20 @@ async function entrarSala(){
   if(sala.iniciado){toast('⚠️ Esse jogo já começou!');return;}
   const deviceId=getDeviceId();
   const jogadores=sala.jogadores||{};
-  // Bloquear mesmo dispositivo entrando mais de uma vez
+  // Mesmo aparelho: NÃO cria jogador novo — devolve o aluno ao lugar dele.
+  // Recusar seco deixava o aluno preso fora da sala depois de um F5.
   const jaEntrou=Object.values(jogadores).find(j=>j.deviceId===deviceId);
-  if(jaEntrou){toast('⚠️ Você já está nesta sala como "'+escHtml(jaEntrou.nome)+'"!');return;}
+  if(jaEntrou){
+    meuId=jaEntrou.id;codigoSala=cod;salvarSessao();
+    document.getElementById('cod-show').textContent=cod;
+    document.getElementById('mod-cod-val').textContent=cod;
+    toast('✅ Você já estava nesta sala como "'+escHtml(jaEntrou.nome)+'" — de volta ao seu lugar!');
+    irTela('tela-sala');escutarSala();return;
+  }
+  // Nome repetido na mesma sala confunde a turma e o professor
+  const nomeNorm=nome.trim().toLowerCase();
+  const nomeUsado=Object.values(jogadores).find(j=>(j.nome||'').trim().toLowerCase()===nomeNorm);
+  if(nomeUsado){toast('⚠️ Já existe "'+escHtml(nomeUsado.nome)+'" nesta sala. Escolha outro nome.');return;}
   const qtd=Object.keys(jogadores).length;
   if(qtd>=6){toast('⚠️ Sala cheia!');return;}
   meuId='p'+Date.now();
@@ -1270,7 +1517,7 @@ function escutarSala(){
       escutarChat();
       snd('notif');
       irTela('tela-jogo');
-      setTimeout(setupPresence,1000);
+      setTimeout(monitorarConexao,1000);
       setTimeout(iniciarVerificacaoDesconectados,3000);
       return;
     }
@@ -1712,6 +1959,11 @@ async function comprarDesenvolvimento(id){
   const casa=CASAS.find(c=>c.id===id);
   if(!jg||!prop||prop.dono!==meuId){toast('Você não é dono!');return;}
   if(prop.hotel){toast('🏨 Máximo! Já tem hotel.');return;}
+  // DIVERGÊNCIA PROPOSITAL do Banco Imobiliário original: lá só se constrói
+  // com o grupo de cor completo. Aqui os grupos têm 3 a 5 imóveis (o original
+  // usa 2 ou 3), então exigir o grupo inteiro tornaria Praias e Turismo
+  // inconstruíveis numa aula de 50 min e o hotel sumiria do jogo.
+  // Decisão pedagógica: construir em qualquer imóvel próprio. NÃO "corrigir".
   jg.transacoes=jg.transacoes||[];j.log=j.log||[];
   const isHotel=prop.casas>=4;
   const preco=casa?.preco??prop?.preco??0;
@@ -1728,7 +1980,7 @@ async function comprarDesenvolvimento(id){
   const novoEmoji=prop.hotel?'🏨':DEV_EMOJIS[prop.casas]||'🏠';
   jg.transacoes.push({desc:`Investimento: ${novoLabel} — ${casa.nome}`,valor:custo,tipo:'saida',data:hoje()});
   j.log.push({msg:`${novoEmoji} ${jg.nome} investiu em ${novoLabel} em ${casa.nome}!`,tipo:'le'});
-  await fbSet('jogos/'+codigoSala,j);jogo=j;
+  await salvarJogo(j);
   const novoAluguel=calcularAluguel(prop,temMonopolio(meuId,casa.grupo,j));
   fecharEvento(null);
   setTimeout(()=>mostrarEvento({
@@ -1753,14 +2005,17 @@ async function venderDesenvolvimento(id){
   if(!prop.casas&&!prop.hotel){toast('Nada para vender.');return;}
   let retorno;
   const preco=casa?.preco??prop?.preco??0;
-  if(prop.hotel){retorno=Math.floor(preco*.35);prop.hotel=false;prop.casas=4;}
+  // Metade do que pagou (construiu por 0,5 → recebe 0,25), igual para casa e hotel
+  if(prop.hotel){retorno=Math.floor(preco*.25);prop.hotel=false;prop.casas=4;}
   else{retorno=Math.floor(preco*.25);prop.casas--;}
   jg.saldo+=retorno;j.reciboN++;
   jg.transacoes.push({desc:`Venda benfeitoria — ${casa.nome}`,valor:retorno,tipo:'entrada',data:hoje()});
   j.log.push({msg:`🏚️ ${jg.nome} vendeu benfeitoria em ${casa.nome} por R$${retorno}`,tipo:'lv'});
-  await fbSet('jogos/'+codigoSala,j);jogo=j;
-  fecharEvento(()=>{atualizarUI();renderBoard();toast(`✅ Vendido por R$${retorno}!`);if(jogo?.fase==='processando')proxTurno();});
+  if(!await salvarJogo(j))return;
   snd('ganhar');
+  // Durante o "levantar caixa" a demolição não pode fechar o modal nem avançar o turno
+  if(_lcAtivo){atualizarUI();renderBoard();toast(`✅ Vendido por R$${retorno}!`);renderLevantarCaixa();return;}
+  fecharEvento(()=>{atualizarUI();renderBoard();toast(`✅ Vendido por R$${retorno}!`);if(jogo?.fase==='processando')proxTurno();});
 }
 
 function rolarDado(){
@@ -1867,8 +2122,8 @@ async function moverJogador(passos){
     jg.posicao=novaPos;
     j.fase='processando';
     j.log.push({msg:`🎲 ${jg.avatar} ${jg.nome} tirou ${passos}`,tipo:'lv'});
-    await fbSet('jogos/'+codigoSala,j);
-    jogo=j; atualizarUI();
+    await salvarJogo(j);
+    atualizarUI();
     // Só o jogador da vez processa a casa — direto, sem depender do listener
     setTimeout(()=>processarCasa(JSON.parse(JSON.stringify(jogo))),600);
   }catch(err){
@@ -1897,8 +2152,7 @@ async function processarCasa(j){
       j.eventoAtual=null;
     }
     j.log.push({msg:`📍 ${jg.avatar} ${jg.nome} → ${casa.nome}`,tipo:'lv'});
-    await fbSet('jogos/'+codigoSala,j);
-    jogo=j;
+    await salvarJogo(j);
     switch(casa.tipo){
       case 'inicio':   toast('🏁 Início! +R$200');await proxTurno();break;
       case 'descanso': await abrirDescanso(casa,j);break;
@@ -1926,7 +2180,7 @@ async function abrirDescanso(casa,j){
   j.log.push({msg:`😎 ${jg.nome} foi de férias e gastou R$${custo}`,tipo:'lv'});
   j.eventoAtual=null;
   snd('perder');
-  await fbSet('jogos/'+codigoSala,j);jogo=j;
+  await salvarJogo(j);
   try{atualizarUI();renderBoard();}catch(e){console.warn('[descanso ui]',e);}
   mostrarEvento({
     emoji:'😎',
@@ -1955,8 +2209,8 @@ async function hostPularTurno(){
     prox=(prox+1)%j.ordem.length;
   j.turnoIdx=prox;j.turno++;
   j.fase='aguardando-dado';j.eventoAtual=null;
-  await fbSet('jogos/'+codigoSala,j);
-  jogo=j;atualizarUI();
+  await salvarJogo(j);
+  atualizarUI();
   toast(`⚡ Turno de ${jgAtual.nome} pulado!`);
 }
 
@@ -2000,10 +2254,11 @@ function abrirProp(casa,j){
     const isMono=temMonopolio(meuId,casa.grupo,j);
     const curIdx=prop.hotel?5:prop.casas;
     const base=aluguelBase;
-    // Tabela de aluguéis por nível (calculados via calcularAluguel para consistência)
-    const rentTab=[
-      isMono?base*2:base, base*2, base*3, base*5, base*7, base*10
-    ];
+    // Tabela de aluguéis por nível — calculada PELO MOTOR (calcularAluguel).
+    // Antes eram números fixos que não batiam com o que o jogo cobrava:
+    // a tela prometia 10× a base no hotel e o jogo cobrava até 80×.
+    const rentTab=DEV_NOMES.map((_,i)=>
+      calcularAluguel({aluguel:base,casas:i<5?i:0,hotel:i===5}, isMono));
     const ladderHtml=DEV_NOMES.map((nm,i)=>{
       const ativo=i===curIdx;
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.22rem .5rem;border-radius:6px;font-size:.78rem;${ativo?`background:${casa.cor}33;border:1px solid ${casa.cor};font-weight:800`:'opacity:.55'}">
@@ -2012,10 +2267,12 @@ function abrirProp(casa,j){
       </div>`;
     }).join('');
     const podeConstruir=!prop.hotel&&ehMinhaVez();
-    const custoConstr=prop.casas>=4?Math.floor(preco*.7):Math.floor(preco*.5);
+    // Hotel custa o mesmo que uma casa — regra do Banco Imobiliário original
+    const custoConstr=Math.floor(preco*.5);
     const proxNome=DEV_NOMES[curIdx+1]||'Hotel Boutique';
     const proxEmoji=DEV_EMOJIS[curIdx+1]||'🏨';
-    const retornoBenf=prop.hotel?Math.floor(preco*.35):Math.floor(preco*.25);
+    // Benfeitoria volta pela METADE do que custou (0,5 → 0,25), casa ou hotel
+    const retornoBenf=Math.floor(preco*.25);
     const buildBtn=podeConstruir
       ?`<button class="ev-btn" style="background:var(--verde);color:#07192e;margin-top:.5rem;font-size:.82rem" onclick="comprarDesenvolvimento(${casa.id})">🏗️ Construir: ${proxEmoji} ${proxNome} — R$ ${custoConstr},00</button>
         ${prop.casas>0||prop.hotel?`<button class="ev-btn ev-btn2" style="margin-top:.3rem;font-size:.78rem" onclick="venderDesenvolvimento(${casa.id})">🏚️ Demolir e receber R$ ${retornoBenf},00</button>`:''}`
@@ -2068,6 +2325,111 @@ function abrirProp(casa,j){
   }
 }
 
+// =====================================================
+// LEVANTAR CAIXA — última chance antes da falência
+// =====================================================
+// Falir quem ainda tem imóvel para vender é injusto e ensina a lição errada.
+// Só quem não cobre a dívida nem vendendo tudo é que fali de verdade.
+let _lcAtivo=false;
+
+// Quanto o jogador transforma em dinheiro se vender tudo: demolir as
+// benfeitorias (hotel 35% + as 4 casas a 25%) e vender o imóvel a 50%.
+function lcValorLiquidavel(jg,j){
+  const estado=j||jogo;
+  return (jg?.propriedades||[]).reduce((tot,pid)=>{
+    const casa=CASAS.find(c=>c.id===pid);
+    const prop=estado?.props?.[pid];
+    if(!casa||!prop)return tot;
+    const preco=casa.preco||0;
+    let v=Math.floor(preco*.5);
+    if(prop.hotel)v+=Math.floor(preco*.25)*5;   // hotel + as 4 casas que ele devolve
+    else v+=Math.floor(preco*.25)*(prop.casas||0);
+    return tot+v;
+  },0);
+}
+
+function abrirLevantarCaixa(){
+  _lcAtivo=true;
+  fecharEvento(null);
+  renderLevantarCaixa();
+  am('mod-caixa');
+  snd('perder');
+}
+
+function renderLevantarCaixa(){
+  const box=document.getElementById('mod-caixa-body');
+  if(!box||!aluguelPend)return;
+  const jg=jogo?.jogadores?.[meuId];
+  if(!jg)return;
+  const divida=aluguelPend.aluguel;
+  const saldo=Math.floor(jg.saldo||0);
+  const falta=Math.max(0,divida-saldo);
+  const quitado=falta<=0;
+  const itens=(jg.propriedades||[]).map(pid=>{
+    const casa=CASAS.find(c=>c.id===pid), prop=jogo?.props?.[pid];
+    if(!casa||!prop)return '';
+    const preco=casa.preco||0;
+    const vProp=Math.floor(preco*.5);
+    const temBenf=prop.hotel||prop.casas>0;
+    const vBenf=Math.floor(preco*.25);
+    return `<div style="border:1px solid var(--linha);border-radius:10px;padding:.5rem .6rem;margin-bottom:.4rem">
+      <div style="font-weight:700;font-size:.85rem;margin-bottom:.35rem">${casa.emoji} ${escHtml(casa.nome)} <span style="color:var(--cinza2);font-weight:400">— ${devLabel(prop)}</span></div>
+      ${temBenf?`<button class="ev-btn ev-btn2" style="font-size:.76rem;margin-bottom:.25rem" onclick="venderDesenvolvimento(${pid})">🏚️ Demolir benfeitoria — receber R$ ${vBenf},00</button>
+      <div style="font-size:.7rem;color:var(--amarelo);margin-bottom:.25rem">⚠️ Demolir antes de vender o imóvel rende mais.</div>`:''}
+      <button class="ev-btn ev-btn2" style="font-size:.76rem" onclick="venderProp(${pid})">💸 Vender imóvel ao banco — receber R$ ${vProp},00</button>
+    </div>`;
+  }).join('');
+  box.innerHTML=`
+    <p style="font-size:.85rem;line-height:1.55;margin-bottom:.6rem">
+      Você precisa pagar <strong style="color:var(--vermelho)">R$ ${divida},00</strong> de aluguel,
+      mas tem <strong>R$ ${saldo},00</strong> em caixa. Venda parte do patrimônio para quitar.
+    </p>
+    <div style="background:${quitado?'var(--verde)':'var(--vermelho)'}22;border:1px solid ${quitado?'var(--verde)':'var(--vermelho)'};border-radius:10px;padding:.5rem;text-align:center;font-weight:700;font-size:.85rem;margin-bottom:.6rem">
+      ${quitado?'✅ Já dá para pagar!':`Ainda faltam R$ ${falta},00`}
+    </div>
+    <div style="max-height:36vh;overflow-y:auto;margin-bottom:.6rem">${itens||'<div style="text-align:center;color:var(--cinza2);font-size:.8rem">Sem imóveis para vender.</div>'}</div>
+    <div style="background:var(--amarelo-bg);border:1px solid var(--amarelo);border-radius:10px;padding:.6rem;font-size:.76rem;line-height:1.5;margin-bottom:.6rem">
+      💡 <strong>Lição:</strong> vender patrimônio para pagar conta é o último recurso — você recebe bem menos do que pagou. É exatamente para isso que serve a reserva de emergência.
+    </div>
+    <button class="bm bm-p" ${quitado?'':'disabled style="opacity:.45;cursor:not-allowed"'} onclick="lcPagarAgora()">💸 Pagar R$ ${divida},00</button>
+    <button class="ev-btn ev-btn2" style="margin-top:.35rem;font-size:.76rem" onclick="lcDeclararFalencia()">😢 Não tenho como pagar — declarar falência</button>`;
+}
+
+async function lcPagarAgora(){
+  const jg=jogo?.jogadores?.[meuId];
+  if(!aluguelPend||!jg||jg.saldo<aluguelPend.aluguel){toast('⚠️ Ainda falta dinheiro!');return;}
+  _lcAtivo=false;
+  fm('mod-caixa');
+  await confirmarAluguel();
+}
+
+async function lcDeclararFalencia(){
+  if(!aluguelPend)return;
+  const valor=aluguelPend.aluguel;
+  _lcAtivo=false;
+  aluguelPend=null;
+  fm('mod-caixa');
+  await executarFalencia(valor);
+}
+
+// Falência de verdade — imóveis e benfeitorias voltam ao banco para revenda
+async function executarFalencia(valorDivida){
+  const j=JSON.parse(JSON.stringify(jogo));
+  const jgR=j.jogadores?.[meuId];
+  if(!jgR)return;
+  (jgR.propriedades||[]).forEach(pid=>{if(j.props[pid]){j.props[pid].dono=null;j.props[pid].casas=0;j.props[pid].hotel=false;}});
+  jgR.propriedades=[];
+  jgR.ativo=false;
+  fecharEvento(null);
+  const el=document.getElementById('mod-faliu-m');
+  if(el)el.textContent=`${jgR.avatar} ${jgR.nome} não tinha patrimônio para cobrir R$ ${valorDivida},00 e FALIU! Seus imóveis voltaram ao mercado.`;
+  j.log=j.log||[];
+  j.log.push({msg:`💀 ${jgR.nome} faliu! Imóveis liberados.`,tipo:'ls'});
+  await salvarJogo(j);
+  snd('perder');
+  am('mod-faliu');atualizarUI();renderBoard();
+}
+
 async function confirmarAluguel(){
   if(!aluguelPend||_aluguelProcessando)return;
   _aluguelProcessando=true;
@@ -2084,24 +2446,23 @@ async function confirmarAluguel(){
       setTimeout(proxTurno,800);return;
     }
     if(jgR.saldo<aluguelReal){
-      // FALÊNCIA — libera imóveis de volta ao banco
-      (jgR.propriedades||[]).forEach(pid=>{if(j.props[pid]){j.props[pid].dono=null;j.props[pid].casas=0;j.props[pid].hotel=false;}});
-      jgR.propriedades=[];
-      jgR.ativo=false;
-      fecharEvento(null);
-      document.getElementById('mod-faliu-m').textContent=
-        `${jgR.avatar} ${jgR.nome} não tinha saldo para pagar R$ ${aluguelReal},00 de aluguel e FALIU! Seus imóveis voltaram ao mercado.`;
-      j.log.push({msg:`💀 ${jgR.nome} faliu! Imóveis liberados.`,tipo:'ls'});
-      await fbSet('jogos/'+codigoSala,j);jogo=j;
-      snd('perder');
-      am('mod-faliu');atualizarUI();return;
+      // Antes de falir: o patrimônio dele cobre a dívida? Então NÃO é falência —
+      // ele tem direito de vender imóvel ou demolir benfeitoria para pagar.
+      if(jgR.saldo+lcValorLiquidavel(jgR,j)>=aluguelReal){
+        aluguelPend=pend;          // devolve a pendência: a cobrança continua de pé
+        abrirLevantarCaixa();
+        return;
+      }
+      // FALÊNCIA legítima — nem vendendo tudo ele pagaria
+      await executarFalencia(aluguelReal);
+      return;
     }
     jgR.saldo-=aluguelReal;donoR.saldo+=aluguelReal;j.reciboN++;
     jgR.transacoes.push({desc:`Aluguel pago — ${casa.nome}${mono?' (2×)':''}`,valor:aluguelReal,tipo:'saida',data:hoje()});
     donoR.transacoes.push({desc:`Aluguel recebido — ${casa.nome}${mono?' (2×)':''}`,valor:aluguelReal,tipo:'entrada',data:hoje()});
     j.log.push({msg:`💸 ${jgR.nome} pagou R$${aluguelReal} de aluguel para ${donoR.nome}${mono?' ⭐':''}`,tipo:'ls'});
     snd('pagar');
-    await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
+    await salvarJogo(j);atualizarUI();
     mostrarEvento({
       emoji:'✅',titulo:'Aluguel pago!',
       narrativa:'Transação registrada. Acompanhe seu extrato na aba Banco.',
@@ -2141,7 +2502,7 @@ async function comprarProp(id){
     // Zerar eventoAtual ANTES do fbSet — impede restaurarEvento de reabrir card de compra
     j.eventoAtual=null;
     snd(mono?'vitoria':'comprar');
-    await fbSet('jogos/'+codigoSala,j);jogo=j;
+    await salvarJogo(j);
     try{atualizarUI();renderBoard();}catch(e){console.warn('[ui]',e);}
     mostrarEvento({
       emoji:casa.emoji,titulo:mono?'⭐ MONOPÓLIO!':'Imóvel comprado!',
@@ -2176,7 +2537,9 @@ async function venderProp(id){
   jg.transacoes.push({desc:`Venda — ${casa.nome}`,valor:valorVenda,tipo:'entrada',data:hoje()});
   j.log.push({msg:`🏚️ ${jg.nome} vendeu ${casa.nome} por R$${valorVenda}`,tipo:'lv'});
   snd('ganhar');
-  await fbSet('jogos/'+codigoSala,j);jogo=j;
+  if(!await salvarJogo(j))return;
+  // Durante o "levantar caixa" a venda não pode fechar o modal nem avançar o turno
+  if(_lcAtivo){atualizarUI();renderBoard();toast(`✅ ${casa.nome} vendido por R$${valorVenda}!`);renderLevantarCaixa();return;}
   fecharEvento(()=>{atualizarUI();renderBoard();toast(`✅ ${casa.nome} vendido por R$${valorVenda}!`);if(jogo?.fase==='processando')proxTurno();});
 }
 
@@ -2203,7 +2566,7 @@ async function abrirCarta(j){
     valor:ganhou?carta.valor:-carta.valor,cor:ganhou?'var(--verde)':'var(--vermelho)',
     tagHtml:`💡 ${ganhou?'Renda extra! Sempre guarde uma parte do que receber.':'Gastos imprevistos acontecem. Uma reserva de emergência ajuda!'}`,
     btnTxt:ganhou?'Que sorte! 🎉':'Entendido! 😅'};
-  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
+  await salvarJogo(j);atualizarUI();
   if(meuId===j.ordem[j.turnoIdx]){
     mostrarEvento({
       emoji:carta.emoji,titulo:carta.titulo,narrativa:carta.desc,
@@ -2233,7 +2596,7 @@ async function abrirImposto(casa,j){
   // Persistir evento completo para reconexão (transação já aplicada acima)
   j.eventoAtual={tipo:'imposto',emoji:casa.emoji||'🏛️',titulo:casa.nome,narrativa:narr,
     valor:-val,cor:'var(--vermelho)',tagHtml:_tagImp,reciboHtml:_recImp,btnTxt:'Paguei! 😤'};
-  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
+  await salvarJogo(j);atualizarUI();
   if(meuId===j.ordem[j.turnoIdx]){
     mostrarEvento({
       emoji:casa.emoji||'🏛️',titulo:casa.nome,narrativa:narr,
@@ -2308,7 +2671,7 @@ async function respQuiz(escolha){
     j.log.push({msg:`🎓 ${jg.nome} errou o quiz. -R$${penalty}`,tipo:'ls'});
     snd('quiz_err');
   }
-  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();
+  await salvarJogo(j);atualizarUI();
   setTimeout(()=>fecharEvento(proxTurno),2600);
 }
 
@@ -2331,7 +2694,7 @@ async function fazerTransferencia(){
   j.log.push({msg:`💸 ${jg.nome} transferiu R$${valor.toFixed(0)} para ${dest.nome}`,tipo:'lv'});
   document.getElementById('s-val').value='';
   snd('pagar');
-  await fbSet('jogos/'+codigoSala,j);jogo=j;
+  await salvarJogo(j);
   atualizarUI();
   toast(`✅ R$ ${valor.toFixed(2)} enviado para ${dest.nome}!`);
 }
@@ -2355,8 +2718,8 @@ async function proxTurno(){
       prox=(prox+1)%j.ordem.length;
     j.turnoIdx=prox;j.turno++;
     j.fase='aguardando-dado';j.eventoAtual=null;
-    await fbSet('jogos/'+codigoSala,j);
-    jogo=j;atualizarUI();
+    await salvarJogo(j);
+    atualizarUI();
   }finally{
     proxTurnoEmAndamento=false;
   }
@@ -2416,7 +2779,6 @@ async function hostRemoverJogador(id){
   if(!jogo||jogo.ordem[0]!==meuId){toast('Só o professor pode fazer isso.');return;}
   const jg=jogo.jogadores[id];
   if(!jg||!jg.ativo){toast('Jogador não encontrado ou já inativo.');return;}
-  if(!confirm('Remover '+jg.nome+'?\nOs imóveis voltarão ao tabuleiro.')){return;}
   const j=JSON.parse(JSON.stringify(jogo));
   const jgR=j.jogadores[id];
   (jgR.propriedades||[]).forEach(pid=>{
@@ -2427,8 +2789,12 @@ async function hostRemoverJogador(id){
   j.log.push({msg:`🚫 ${jgR.nome} removido pelo professor. Imóveis liberados.`,tipo:'ls'});
   const eraSuaVez=j.ordem[j.turnoIdx]===id;
   if(eraSuaVez){j.fase='aguardando-dado';j.eventoAtual=null;}
-  await fbSet('jogos/'+codigoSala,j);jogo=j;atualizarUI();renderBoard();
+  if(!await salvarJogo(j))return;
+  atualizarUI();renderBoard();
   snd('perder');toast('🚫 '+jgR.nome+' removido!');
+  // Sobrou um só? A partida acabou — não deixa o professor com uma sala morta
+  const ativos=Object.values(jogo.jogadores||{}).filter(g=>g.ativo).length;
+  if(ativos<=1){encerrar();return;}
   if(eraSuaVez)proxTurno();
 }
 
@@ -2483,7 +2849,7 @@ function renderAba(t){
       const hostBtns=isHost&&!isEu&&jg.ativo&&offline?`
         <div style="display:flex;gap:.3rem;margin-top:.45rem;flex-wrap:wrap">
           ${vez?`<button onclick="hostPularVez('${id}')" style="flex:1;padding:.22rem .3rem;border:1px solid var(--azul);background:var(--azul-bg);color:var(--azul);border-radius:5px;font-size:.62rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">⏭️ Pular vez</button>`:''}
-          <button onclick="hostRemoverJogador('${id}')" style="flex:1;padding:.22rem .3rem;border:1px solid var(--vermelho);background:var(--vermelho-bg);color:var(--vermelho);border-radius:5px;font-size:.62rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">🚫 Remover</button>
+          <button onclick="pedirRemocao('${id}')" style="flex:1;padding:.22rem .3rem;border:1px solid var(--vermelho);background:var(--vermelho-bg);color:var(--vermelho);border-radius:5px;font-size:.62rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">🚫 Remover</button>
         </div>`:'';
       return `<div class="pjc${vez?' vez':''}${isEu?' eu':''}">
         <div class="pjc-row">
@@ -2595,13 +2961,28 @@ function limparSessao(){
 
 // ─── Presença Firebase ──────────────────────────────
 function setupPresence(){
-  if(MODO_DEMO||!db)return;
+  if(MODO_DEMO||!db||!codigoSala||!meuId)return;
   const base='jogos/'+codigoSala+'/jogadores/'+meuId;
-  // Usar transaction para não sobrescrever o jogo inteiro
+  // Escrita em caminho específico — nunca sobrescreve o jogo inteiro
   db.ref(base+'/online').onDisconnect().set(false);
   db.ref(base+'/desconectadoEm').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
   db.ref(base+'/online').set(true);
+  db.ref(base+'/desconectadoEm').remove();
   salvarSessao();
+}
+
+// O onDisconnect do Firebase é CONSUMIDO quando dispara. Sem re-registrar a
+// cada reconexão, a segunda queda do aluno nunca era vista pelo professor —
+// o auto-pular não rodava e a partida travava de vez.
+let _presencaMonitorada=false;
+function monitorarConexao(){
+  if(MODO_DEMO||!db||_presencaMonitorada)return;
+  _presencaMonitorada=true;
+  db.ref('.info/connected').on('value',s=>{
+    if(s.val()!==true)return;
+    if(!codigoSala||!meuId)return;
+    setupPresence();   // re-arma o onDisconnect e marca online de novo
+  });
 }
 
 function marcarOnline(){
@@ -2635,7 +3016,7 @@ async function tentarReconectar(){
   meuId=sessao.meuId;
   meuAv=sessao.meuAv||0;
   marcarOnline();
-  setupPresence();
+  monitorarConexao();
   escutarJogo();
   escutarChat();
   document.getElementById('box-reconectar').classList.remove('vis');
@@ -2654,23 +3035,66 @@ function pararVerificacaoDesconectados(){
   if(_discoInterval){clearInterval(_discoInterval);_discoInterval=null;}
 }
 
+// Quando cada jogador sumido já foi oferecido ao professor
+let _remocaoAvisada={};
+let _remocaoAlvo=null;
+
 async function verificarDesconectados(){
   if(!jogo||MODO_DEMO||!db)return;
   if(jogo.ordem[0]!==meuId)return; // apenas host verifica
-  // Pular vez automaticamente se jogador offline >90s travou o dado
-  // Remoção é MANUAL — professor clica "Remover" na aba Jogadores
-  if(jogo.fase!=='aguardando-dado')return;
   const agora=Date.now();
+
+  // 1) DESTRAVAR A PARTIDA — vale para QUALQUER fase.
+  // Antes só agia em 'aguardando-dado': se o aluno caísse com um card de
+  // evento aberto, a partida travava para sempre.
   const atualId=jogo.ordem[jogo.turnoIdx];
   const atualJg=jogo.jogadores[atualId];
-  if(!atualJg?.ativo||atualJg.online!==false||!atualJg.desconectadoEm)return;
-  if(agora-atualJg.desconectadoEm>90*1000){
+  if(atualJg?.ativo&&atualJg.online===false&&atualJg.desconectadoEm&&
+     agora-atualJg.desconectadoEm>90*1000){
     const j=JSON.parse(JSON.stringify(jogo));
-    j.log.push({msg:`⏭️ Vez de ${atualJg.nome} pulada automaticamente (offline >90s).`,tipo:'lv'});
-    await fbSet('jogos/'+codigoSala,j);
-    jogo=j;
-    proxTurno();
+    j.log=j.log||[];
+    j.log.push({msg:`⏭️ Vez de ${atualJg.nome} pulada automaticamente (offline há mais de 90s).`,tipo:'lv'});
+    let prox=(j.turnoIdx+1)%j.ordem.length,t=0;
+    while(!j.jogadores[j.ordem[prox]]?.ativo&&t++<j.ordem.length)
+      prox=(prox+1)%j.ordem.length;
+    j.turnoIdx=prox;j.turno++;
+    j.fase='aguardando-dado';j.eventoAtual=null;
+    if(await salvarJogo(j))atualizarUI();
+    return;
   }
+
+  // 2) AUSÊNCIA LONGA — pergunta ao professor se remove.
+  // Se ele mandar esperar, só volta a perguntar depois de mais 3 minutos.
+  const sumido=Object.values(jogo.jogadores||{}).find(g=>
+    g.ativo&&g.online===false&&g.desconectadoEm&&
+    agora-g.desconectadoEm>180*1000&&
+    agora-(_remocaoAvisada[g.id]||0)>180*1000);
+  if(sumido){
+    _remocaoAvisada[sumido.id]=agora;
+    pedirRemocao(sumido.id);
+  }
+}
+
+// Abre o aviso ao professor — sem confirm() nativo, que trava o navegador
+function pedirRemocao(id){
+  if(!jogo||jogo.ordem[0]!==meuId){toast('Só o professor pode fazer isso.');return;}
+  const jg=jogo.jogadores?.[id];
+  if(!jg||!jg.ativo){toast('Jogador não encontrado ou já fora da partida.');return;}
+  _remocaoAlvo=id;
+  const el=document.getElementById('mod-offline-m');
+  if(el){
+    const min=Math.max(1,Math.floor((Date.now()-(jg.desconectadoEm||Date.now()))/60000));
+    el.innerHTML=`${jg.avatar} <strong>${escHtml(jg.nome||'')}</strong> está desconectado há ${min} min.<br><br>`+
+      `Se você remover, os imóveis dele voltam ao banco e podem ser comprados de novo. O dinheiro sai da partida.`;
+  }
+  am('mod-offline');
+  snd('notif');
+}
+
+async function confirmarRemocaoOffline(){
+  const id=_remocaoAlvo;_remocaoAlvo=null;
+  fm('mod-offline');
+  if(id)await hostRemoverJogador(id);
 }
 
 // ─── Verificar sessão salva ao carregar página ───────
