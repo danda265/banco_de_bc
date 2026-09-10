@@ -549,7 +549,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
     <input class="inp" id="l-codigo" placeholder="Código da sala (6 caracteres)" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')" onkeydown="if(event.key==='Enter')entrarSala()">
     <button class="btn btn-entrar" onclick="entrarSala()">🚀 Entrar na Sala</button>
   </div>
-  <div class="bncc">✅ BNCC: EF04MA24 • EF04MA25 • EF04MA26 — Balneário Camboriú • SC</div>
+  <div class="bncc">✅ BNCC (Anos Finais): EF04MA25 • EF06MA13 • EF07MA02 • EF08MA04 • EF09MA05 • EF69LP02 — Educação Financeira • Balneário Camboriú • SC</div>
   <div class="creditos">
     🌊 <strong>Banco de Balneário!</strong><br>
     E.M. Alfredo Domingos da Silva — Balneário Camboriú/SC<br>
@@ -2188,7 +2188,7 @@ async function abrirDescanso(casa,j){
     narrativa:'Que delícia! Mas férias custam dinheiro — passeio, hospedagem, alimentação...',
     valor:-custo,
     cor:'#FFD23F',
-    tagHtml:'💡 EF04MA24 — Lazer e férias fazem parte do planejamento financeiro!',
+    tagHtml:'💡 Planejamento — lazer e férias também entram no orçamento!',
     btnTxt:'Entendido! 😅',
     btnFn:proxTurno
   });
@@ -2242,7 +2242,7 @@ function abrirProp(casa,j){
       narrativa:`Terreno disponível em ${grupoL(casa.grupo)}! ${grupoTotal>1?`Compre todos os ${grupoTotal} imóveis do grupo e dobre o aluguel!`:''}`,
       cor:casa.cor,
       reciboHtml:`<div class="r-t">📋 FICHA DO IMÓVEL</div><div class="r-n">${grupoL(casa.grupo)} • Balneário Camboriú</div><div class="r-l"><span>Imóvel</span><span>${casa.emoji} ${casa.nome}</span></div><div class="r-l"><span>Preço de compra</span><span style="color:${casa.cor}">R$ ${preco},00</span></div><div class="r-l"><span>Aluguel base</span><span style="color:var(--verde)">R$ ${aluguelBase},00/visita</span></div><div class="r-l"><span>Com monopólio</span><span style="color:var(--amarelo)">R$ ${aluguelBase*2},00/visita</span></div><div class="r-l"><span>Seu saldo</span><span>R$ ${Number(jg.saldo||0).toFixed(0)},00</span></div><div class="r-l"><span>Após comprar</span><span>${podComprar?`R$ ${Number(jg.saldo-preco).toFixed(0)},00`:'❌ Saldo insuficiente'}</span></div>`,
-      tagHtml:'💡 EF04MA24 — Investimento em imóveis gera renda passiva!',
+      tagHtml:'💡 Poupança e investimento — imóveis podem gerar renda passiva!',
       btnTxt:podComprar?`🛒 Comprar por R$ ${preco},00`:'❌ Sem saldo — Passar',
       btnFn:podComprar?()=>comprarProp(casa.id):proxTurno,
       btn2Txt:podComprar?'👋 Passar sem comprar':null,
