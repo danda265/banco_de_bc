@@ -549,7 +549,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
     <input class="inp" id="l-codigo" placeholder="Código da sala (6 caracteres)" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')" onkeydown="if(event.key==='Enter')entrarSala()">
     <button class="btn btn-entrar" onclick="entrarSala()">🚀 Entrar na Sala</button>
   </div>
-  <div class="bncc">✅ BNCC (Anos Finais): EF04MA25 • EF06MA13 • EF07MA02 • EF08MA04 • EF09MA05 • EF69LP02 — Educação Financeira • Balneário Camboriú • SC</div>
+  <div class="bncc">✅ BNCC: EF04MA25 • EF06MA13 • EF07MA02 • EF08MA04 • EF09MA05 • EF69LP02 — Educação Financeira • Balneário Camboriú • SC</div>
   <div class="creditos">
     🌊 <strong>Banco de Balneário!</strong><br>
     E.M. Alfredo Domingos da Silva — Balneário Camboriú/SC<br>
@@ -1174,6 +1174,35 @@ const QUIZ = [
    ops:['Só para enfeitar a carteira','Comprovar a compra, garantir a troca e registrar o imposto pago','Para ganhar desconto sempre','Não serve para nada'],c:1,
    exp:'É sua prova de compra para a garantia — e é por ela que o imposto chega às escolas e hospitais de BC!',bonus:110},
 ];
+
+// =====================================================
+// ALINHAMENTO BNCC POR PERGUNTA (tema + código) — exibido no card do quiz.
+// Uma linha por pergunta, na MESMA ORDEM do array QUIZ acima.
+// Ao adicionar/remover perguntas, mantenha este mapa em sincronia.
+// =====================================================
+const QUIZ_BNCC = [
+  'Planejamento|EF04MA25','Planejamento|EF04MA25','Circulação do dinheiro|EF04MA25','Planejamento|EF04MA25','Consumo|EF04MA25','Poupança e investimento|EF04MA25',
+  'Planejamento|TCT','Planejamento|TCT','Poupança e investimento|TCT','Renda e empreendedorismo|TCT','Crédito e endividamento|TCT','Circulação do dinheiro|TCT',
+  'Circulação do dinheiro|EF06MA13','Consumo|EF07MA02','Poupança e investimento|EF07MA02','Planejamento|EF06MA13','Consumo|EF07MA02',
+  'Planejamento|TCT','Crédito e endividamento|EF07MA02','Poupança e investimento|TCT',
+  'Cenário financeiro e cidadania|Comp. Geral 10','Cenário financeiro e cidadania|Comp. Geral 10',
+  'Poupança e investimento|TCT','Poupança e investimento|TCT','Circulação do dinheiro|TCT',
+  'Renda e empreendedorismo|Comp. Geral 6','Renda e empreendedorismo|Comp. Geral 6',
+  'Crédito e endividamento|TCT','Crédito e endividamento|EF09MA05','Circulação do dinheiro|TCT',
+  'Planejamento|TCT',
+  'Circulação do dinheiro|EF06MA13','Circulação do dinheiro|EF06MA13','Circulação do dinheiro|TCT',
+  'Planejamento|TCT','Planejamento|TCT',
+  'Consumo|EF69LP02','Consumo|EF69LP02','Consumo|EF69LP02',
+  'Poupança e investimento|TCT','Poupança e investimento|EF09MA05',
+  'Crédito e endividamento|EF09MA05','Crédito e endividamento|TCT',
+  'Renda e empreendedorismo|Comp. Geral 6','Renda e empreendedorismo|Comp. Geral 6','Renda e empreendedorismo|Comp. Geral 6',
+  'Risco e proteção|Comp. Geral 5','Risco e proteção|Comp. Geral 5','Risco e proteção|Comp. Geral 5','Risco e proteção|TCT','Risco e proteção|Comp. Geral 5',
+  'Cenário financeiro e cidadania|Comp. Geral 10','Cenário financeiro e cidadania|Comp. Geral 10','Cenário financeiro e cidadania|Comp. Geral 10',
+];
+QUIZ.forEach((q,i)=>{
+  const t=(QUIZ_BNCC[i]||'Educação Financeira|TCT').split('|');
+  q.tema=t[0]; q.cod=t[1];
+});
 
 const CORES = ['#FF4757','#3DB8FF','#00E5A0','#FFD23F','#B08FFF','#FF9F43'];
 const AVATARES = ['🦁','🐬','🦋','🦅','🐠','🐧','🦊','🐸'];
@@ -2630,7 +2659,7 @@ function abrirQuiz(){
     emoji:'🎓',titulo:'Desafio Financeiro!',
     narrativa:quizAtivo.p,
     cor:'#00E5A0',
-    devHtml:`<div class="qops" style="margin:.35rem 0">${optsHtml}</div><div id="quiz-fb"></div>`,
+    devHtml:`<div class="tag-b" style="margin-bottom:.45rem">📚 BNCC ${quizAtivo.cod} · ${quizAtivo.tema}</div><div class="qops" style="margin:.35rem 0">${optsHtml}</div><div id="quiz-fb"></div>`,
     tagHtml:`✅ Acerto: <strong>+ R$ ${quizAtivo.bonus},00</strong> &nbsp;·&nbsp; ❌ Erro: <strong>− R$ ${penalty},00</strong>`,
   });
 }
