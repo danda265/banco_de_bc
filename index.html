@@ -362,7 +362,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
     <input class="inp" id="l-codigo" placeholder="Código da sala (4 dígitos)" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')">
     <button class="btn btn-entrar" onclick="entrarSala()">🚀 Entrar na Sala</button>
   </div>
-  <div class="bncc">✅ BNCC: EF04MA24 • EF04MA25 • EF04MA26 — Balneário Camboriú • SC</div>
+  <div class="bncc">✅ BNCC (Anos Finais): EF04MA25 • EF06MA13 • EF07MA02 • EF08MA04 • EF09MA05 • EF69LP02 — Educação Financeira • Balneário Camboriú • SC</div>
 </div>
 
 <!-- SALA ESPERA -->
@@ -923,7 +923,7 @@ function renderBoard(){
   <circle cx="350" cy="350" r="100" fill="#0a2848" opacity=".8"/>
   <text x="350" y="325" text-anchor="middle" font-family="Fredoka One,cursive" font-size="30" fill="#3DB8FF" opacity=".9">🌊 BANCO DE</text>
   <text x="350" y="362" text-anchor="middle" font-family="Fredoka One,cursive" font-size="28" fill="#3DB8FF" opacity=".9">BALNEÁRIO!</text>
-  <text x="350" y="387" text-anchor="middle" font-family="Nunito,sans-serif" font-size="12" fill="#00E5A0" font-weight="700">💰 EDUCAÇÃO FINANCEIRA 4º ANO</text>
+  <text x="350" y="387" text-anchor="middle" font-family="Nunito,sans-serif" font-size="12" fill="#00E5A0" font-weight="700">💰 EDUCAÇÃO FINANCEIRA • ANOS FINAIS</text>
   <text x="350" y="406" text-anchor="middle" font-family="Nunito,sans-serif" font-size="10" fill="#3DB8FF" opacity=".6">Balneário Camboriú • SC • BNCC</text>`;
 
   CASAS.forEach(c=>{
@@ -1066,7 +1066,7 @@ function abrirProp(casa, j){
         <div class="pcard-al" style="background:${casa.cor}18;color:${casa.cor}">🏠 Aluguel: R$ ${prop.aluguel},00/visita</div>
         <div style="font-size:.78rem;opacity:.65">${grupoL(casa.grupo)}</div>
       </div>
-      <div class="tag-b">💡 EF04MA24 — Problemas monetários</div>
+      <div class="tag-b">💡 EF04MA25 — Situações de compra e venda</div>
       <p style="font-size:.83rem;margin:.5rem 0">${jg.avatar} <strong>${jg.nome}</strong> tem <strong style="color:var(--verde)">R$ ${jg.saldo.toFixed(2)}</strong></p>
       <p style="font-size:.78rem;color:var(--cinza2);margin-bottom:.7rem">Após comprar: R$ ${(jg.saldo-prop.preco).toFixed(2)}</p>
       ${jg.saldo>=prop.preco
