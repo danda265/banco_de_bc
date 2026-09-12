@@ -1665,7 +1665,7 @@ async function hostIniciar(){
   const jogoInit={
     ordem:jogs.map(j=>j.id),jogadores:jogadoresObj,
     turnoIdx:0,turno:1,reciboN:1000,props,
-    log:[{msg:'🏁 Jogo iniciado! Quem completar 5 voltas primeiro vence!',tipo:'lv'}],
+    log:[{msg:'🏁 Jogo iniciado! Quem completar 1 volta primeiro vence!',tipo:'lv'}],
     fase:'aguardando-dado',eventoAtual:null,
   };
   await fbSet('jogos/'+codigoSala,jogoInit);
@@ -1799,7 +1799,7 @@ function atualizarUI(){
   if(jogo.ordem.length>1&&ativos.length<=1&&!document.getElementById('tela-fim').classList.contains('active')){
     encerrar();return;
   }
-  if(jogo.ordem.some(id=>jogo.jogadores[id]?.voltas>=5)&&
+  if(jogo.ordem.some(id=>jogo.jogadores[id]?.voltas>=1)&&
      !document.getElementById('tela-fim').classList.contains('active')){
     encerrar();
   }
@@ -1846,7 +1846,7 @@ function renderBoard(){
   <text x="350" y="350" text-anchor="middle" font-family="Fredoka One,cursive" font-size="26" fill="#3DB8FF" opacity=".9">BALNEÁRIO!</text>
   <text x="350" y="372" text-anchor="middle" font-family="Nunito,sans-serif" font-size="10" fill="#00E5A0" font-weight="700">💰 EDUCAÇÃO FINANCEIRA</text>
   <text x="350" y="388" text-anchor="middle" font-family="Nunito,sans-serif" font-size="8.5" fill="#3DB8FF" opacity=".6">Balneário Camboriú • SC • BNCC</text>
-  <text x="350" y="404" text-anchor="middle" font-family="Nunito,sans-serif" font-size="9.5" fill="#FFD23F" opacity=".8">🏆 5 VOLTAS PARA VENCER</text>
+  <text x="350" y="404" text-anchor="middle" font-family="Nunito,sans-serif" font-size="9.5" fill="#FFD23F" opacity=".8">🏆 1 VOLTA PARA VENCER</text>
   <text x="350" y="420" text-anchor="middle" font-family="Nunito,sans-serif" font-size="8" fill="#B08FFF" opacity=".7">⭐ GRUPO COMPLETO = ALUGUEL 2×</text>`;
 
   CASAS.forEach(c=>{
@@ -2919,7 +2919,7 @@ async function proxTurno(){
     const j=JSON.parse(JSON.stringify(jogo));
     const ativos=j.ordem.filter(id=>j.jogadores[id]?.ativo);
     if(j.ordem.length>1&&ativos.length<=1){encerrar();return;}
-    if(j.ordem.some(id=>j.jogadores[id]?.voltas>=5)){encerrar();return;}
+    if(j.ordem.some(id=>j.jogadores[id]?.voltas>=1)){encerrar();return;}
     let prox=(j.turnoIdx+1)%j.ordem.length,t=0;
     while(!j.jogadores[j.ordem[prox]]?.ativo&&t++<j.ordem.length)
       prox=(prox+1)%j.ordem.length;
@@ -3065,7 +3065,7 @@ function renderAba(t){
             <div class="pjc-nome">${escHtml(jg.nome||'')}${isEu?' <span style="font-size:.6rem;color:var(--azul)">(você)</span>':''}
             ${!isEu&&offline?'<span class="disco-badge aguardando" title="Desconectado — aguardando reconexão">⚡ desconectado</span>':''}</div>
             <div class="pjc-saldo" style="color:${jg.cor}">R$ ${jg.saldo.toFixed(0)} <span style="font-size:.6rem;color:var(--cinza2)">(+R$${(patrimonio-jg.saldo).toFixed(0)} imóveis)</span></div>
-            <div class="pjc-pos">📍 ${CASAS[jg.posicao]?.nome||'—'} • ${jg.voltas}/5 voltas</div>
+            <div class="pjc-pos">📍 ${CASAS[jg.posicao]?.nome||'—'} • ${jg.voltas}/1 volta</div>
           </div>
           ${vez?'<span class="vez-tag">VEZ</span>':''}
         </div>
