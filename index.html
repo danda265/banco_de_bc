@@ -852,8 +852,11 @@ try {
     {tipo:'quiz',        nome:'Quiz Financeiro',   emoji:'🎓', cor:'#00E5A0'},
     {tipo:'propriedade', nome:'Parque das Nações', emoji:'🏟️', preco:195,aluguel:16, cor:'#00E5A0',grupo:'parques'},
   ];
+  // ADITIVO: intercala casas de Decisão (a cada 5) — nada é removido, total vira múltiplo de 4.
+  { const base=defs.slice(); defs.length=0;
+    base.forEach((d,i)=>{ defs.push(d); if((i+1)%5===0) defs.push({tipo:'decisao',nome:'Decisão!',emoji:'🤔',cor:'#B08FFF'}); }); }
   const pts = [];
-  const n = 40, side = 10;
+  const n = defs.length, side = Math.round(n/4);
   for(let i=0;i<n;i++){
     const seg=Math.floor(i/side), t=(i%side)/side;
     let x,y;
@@ -1268,7 +1271,7 @@ const DECISOES = [
 ];
 
 const CORES = ['#FF4757','#3DB8FF','#00E5A0','#FFD23F','#B08FFF','#FF9F43'];
-const AVATARES = ['🦁','🐬','🦋','🦅','🐠','🐧','🦊','🐸'];
+const AVATARES = ['🦁','🐬','🦋','🦅','🐠','🐧','🦊','🐸','🐯','🐼','🦄','🐙','🦖','🦉','🐨','🦈','🐺','🦩','🦥','🐲'];
 
 // =====================================================
 // AVATAR INIT
@@ -1809,14 +1812,14 @@ function getStrip(c, w, h){
   if(c.tipo!=='propriedade'||!c.grupo) return '';
   const gc=GRUPO_COR[c.grupo]||c.cor;
   const sw=6;
-  // Which wall: 1-9 bottom, 11-19 left, 21-29 top, 31-39 right
-  const id=c.id;
+  // Parede pela posição (count-driven): seg 0 baixo, 1 esq, 2 topo, 3 dir
+  const S=Math.max(1,Math.round(CASAS.length/4));
+  const seg=Math.floor(c.id/S)%4;
   const x=c.x,y=c.y;
-  if(id>=1&&id<=9)   return `<rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${sw}" rx="3" fill="${gc}" opacity=".75"/>`;
-  if(id>=11&&id<=19) return `<rect x="${x+w/2-sw}" y="${y-h/2}" width="${sw}" height="${h}" rx="3" fill="${gc}" opacity=".75"/>`;
-  if(id>=21&&id<=29) return `<rect x="${x-w/2}" y="${y+h/2-sw}" width="${w}" height="${sw}" rx="3" fill="${gc}" opacity=".75"/>`;
-  if(id>=31&&id<=39) return `<rect x="${x-w/2}" y="${y-h/2}" width="${sw}" height="${h}" rx="3" fill="${gc}" opacity=".75"/>`;
-  return '';
+  if(seg===0) return `<rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${sw}" rx="3" fill="${gc}" opacity=".75"/>`;
+  if(seg===1) return `<rect x="${x+w/2-sw}" y="${y-h/2}" width="${sw}" height="${h}" rx="3" fill="${gc}" opacity=".75"/>`;
+  if(seg===2) return `<rect x="${x-w/2}" y="${y+h/2-sw}" width="${w}" height="${sw}" rx="3" fill="${gc}" opacity=".75"/>`;
+  return `<rect x="${x-w/2}" y="${y-h/2}" width="${sw}" height="${h}" rx="3" fill="${gc}" opacity=".75"/>`;
 }
 
 function renderBoard(){
@@ -1850,8 +1853,10 @@ function renderBoard(){
     const {x,y,tipo,nome,emoji,cor}=c;
     const propData=tipo==='propriedade'?jogo.props[c.id]:null;
     const donoCor=propData?.dono!=null?jogo.jogadores[propData.dono]?.cor:null;
+    const _side=Math.max(1,Math.round(CASAS.length/4));
+    const _sp=620/_side;                       // espaçamento entre casas (auto)
     const big=tipo==='inicio'||tipo==='descanso';
-    const w=big?66:54,h=big?66:48;
+    const w=big?Math.min(66,_sp+2):Math.min(54,_sp-6),h=big?Math.min(66,_sp+2):Math.min(48,_sp-8);
     const strip=getStrip(c,w,h);
     // Check monopoly for star
     const isMono=propData?.dono!=null&&c.grupo&&GRUPOS[c.grupo]?.every(id=>(jogo.jogadores[propData.dono]?.propriedades||[]).includes(id));
@@ -2297,6 +2302,7 @@ async function processarCasa(j){
       case 'descanso': await abrirDescanso(casa,j);break;
       case 'propriedade': abrirProp(casa,j);break;
       case 'carta-sorte': await abrirCarta(j);break;
+      case 'decisao':  await abrirDecisao(j);break;
       case 'imposto':  await abrirImposto(casa,j);break;
       case 'quiz':     abrirQuiz();break;
       default:         await proxTurno();
