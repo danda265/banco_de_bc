@@ -2102,6 +2102,7 @@ async function comprarDesenvolvimento(id){
   const prop=j.props[id];
   const casa=CASAS.find(c=>c.id===id);
   if(!jg||!prop||prop.dono!==meuId){toast('Você não é dono!');return;}
+  if(prop.hip){toast('🔒 Imóvel em garantia do empréstimo: quite a dívida antes de construir.');return;}
   if(prop.hotel){toast('🏨 Máximo! Já tem hotel.');return;}
   // DIVERGÊNCIA PROPOSITAL do Banco Imobiliário original: lá só se constrói
   // com o grupo de cor completo. Aqui os grupos têm 3 a 5 imóveis (o original
@@ -2146,6 +2147,7 @@ async function venderDesenvolvimento(id){
   const prop=j.props[id];
   const casa=CASAS.find(c=>c.id===id);
   if(!prop||prop.dono!==meuId)return;
+  if(prop.hip){toast('🔒 Imóvel em garantia do empréstimo: quite a dívida antes de demolir.');return;}
   if(!prop.casas&&!prop.hotel){toast('Nada para vender.');return;}
   let retorno;
   const preco=casa?.preco??prop?.preco??0;
@@ -2261,6 +2263,7 @@ async function moverJogador(passos){
       jg.saldo+=200;
       jg.transacoes.push({desc:'Salário — passou pelo INÍCIO',valor:200,tipo:'entrada',data:hoje()});
       j.log.push({msg:`🏁 ${jg.nome} completou volta ${jg.voltas}! +R$200`,tipo:'le'});
+      cobrarEmprestimo(j,jg);   // o banco desconta o empréstimo (ou fica com a garantia)
       if(meuId===j.ordem[j.turnoIdx]){toast('🏁 Volta '+jg.voltas+' completa! +R$200');snd('volta');}
     }
     jg.posicao=novaPos;
@@ -2471,6 +2474,121 @@ function abrirProp(casa,j){
 }
 
 // =====================================================
+// EMPRÉSTIMO COM GARANTIA DE IMÓVEL
+// =====================================================
+// O banco empresta 50% do preço de um imóvel (a garantia). Devolve-se com 20% de juros.
+// Cobrança automática: ao passar pelo INÍCIO na volta combinada, o banco desconta a dívida do caixa.
+// Sem dinheiro para pagar, o banco fica com o imóvel da garantia (e a dívida some).
+// Enquanto a dívida existir, o imóvel não pode ser vendido nem receber benfeitorias. Dívida que sobrar no fim do jogo
+// é subtraída do patrimônio. Só 1 empréstimo por vez por jogador.
+const EMP_PERCENTUAL = 0.5;
+const EMP_JUROS = 0.2;
+const EMP_VOLTAS_PRAZO = 2;   // vence ao passar pelo INÍCIO pela 2ª vez depois de pedir (garante pelo menos 1 volta inteira para juntar o dinheiro)
+function empPrincipal(casa,prop){return Math.floor((casa?.preco??prop?.preco??0)*EMP_PERCENTUAL);}
+function empDivida(principal){return Math.ceil(principal*(1+EMP_JUROS));}
+
+// Quanto o jogador consegue juntar no total: vender o que não está em garantia e, se ainda não tem empréstimo, hipotecar o melhor imóvel
+function lcMaxCapacidade(jg,j){
+  const estado=j||jogo;
+  const base=lcValorLiquidavel(jg,estado);
+  if(jg?.emprestimo)return base;
+  let melhor=base;
+  (jg?.propriedades||[]).forEach(pid=>{
+    const casa=CASAS.find(c=>c.id===pid), prop=estado?.props?.[pid];
+    if(!casa||!prop||prop.hip)return;
+    const preco=casa.preco||0;
+    let venda=Math.floor(preco*.5);
+    if(prop.hotel)venda+=Math.floor(preco*.25)*5; else venda+=Math.floor(preco*.25)*(prop.casas||0);
+    melhor=Math.max(melhor,base-venda+empPrincipal(casa,prop));
+  });
+  return melhor;
+}
+
+async function tomarEmprestimo(pid){
+  if(!ehMinhaVez()){toast('Só na sua vez!');return;}
+  const j=JSON.parse(JSON.stringify(jogo));
+  const jg=j.jogadores[meuId];
+  const casa=CASAS.find(c=>c.id===pid), prop=j.props?.[pid];
+  if(!jg||!casa||!prop||prop.dono!==meuId){toast('Você não é dono desse imóvel.');return;}
+  if(prop.hip){toast('🔒 Esse imóvel já está em garantia.');return;}
+  if(jg.emprestimo){toast('Você já tem um empréstimo. Quite antes de pedir outro.');return;}
+  const principal=empPrincipal(casa,prop), divida=empDivida(principal);
+  if(principal<=0){toast('Esse imóvel não vale como garantia.');return;}
+  const venceVolta=(jg.voltas||0)+EMP_VOLTAS_PRAZO;
+  if(!confirm(`🏦 Empréstimo com garantia\n\nImóvel em garantia: ${casa.nome}\nVocê recebe agora: R$ ${principal},00\nVocê devolve: R$ ${divida},00 (juros de ${Math.round(EMP_JUROS*100)}%)\n\nO banco cobra sozinho quando você passar pelo INÍCIO na volta ${venceVolta}. Se não tiver o dinheiro nessa hora, o banco FICA com o imóvel.\nEnquanto isso, o imóvel não pode ser vendido nem receber benfeitorias.\n\nConfirmar?`))return;
+  jg.saldo+=principal;
+  prop.hip=true;
+  jg.emprestimo={garantia:pid,principal,divida,venceVolta};
+  j.reciboN++;
+  jg.transacoes=jg.transacoes||[];
+  jg.transacoes.push({desc:`Empréstimo — garantia ${casa.nome}`,valor:principal,tipo:'entrada',data:hoje()});
+  j.log=j.log||[];
+  j.log.push({msg:`🏦 ${jg.nome} pegou R$${principal} de empréstimo com garantia em ${casa.nome} (deve R$${divida} até a volta ${venceVolta})`,tipo:'lv'});
+  snd('ganhar');
+  if(!await salvarJogo(j))return;
+  atualizarUI();renderBoard();
+  toast(`🏦 Empréstimo de R$${principal} liberado! Devolva R$${divida} até a volta ${venceVolta}.`);
+  if(_lcAtivo)renderLevantarCaixa();
+}
+
+async function quitarEmprestimo(){
+  if(!ehMinhaVez()){toast('Só na sua vez!');return;}
+  const j=JSON.parse(JSON.stringify(jogo));
+  const jg=j.jogadores[meuId];
+  const e=jg?.emprestimo;
+  if(!e){return;}
+  if(jg.saldo<e.divida){toast(`⚠️ Faltam R$${e.divida-jg.saldo} para quitar.`);return;}
+  const casa=CASAS.find(c=>c.id===e.garantia);
+  jg.saldo-=e.divida;
+  if(j.props?.[e.garantia])j.props[e.garantia].hip=false;
+  jg.transacoes=jg.transacoes||[];
+  jg.transacoes.push({desc:`Empréstimo quitado — ${casa?.nome||'imóvel'}`,valor:e.divida,tipo:'saida',data:hoje()});
+  j.log=j.log||[];
+  j.log.push({msg:`✅ ${jg.nome} quitou o empréstimo (R$${e.divida}) e liberou ${casa?.nome||'o imóvel'}`,tipo:'lv'});
+  delete jg.emprestimo;
+  j.reciboN++;
+  snd('pagar');
+  if(!await salvarJogo(j))return;
+  atualizarUI();renderBoard();
+  toast('✅ Empréstimo quitado! O imóvel está livre de novo.');
+}
+
+// Chamada quando o jogador passa pelo INÍCIO (dentro de moverJogador, sobre a cópia do estado)
+function cobrarEmprestimo(j,jg){
+  const e=jg.emprestimo;
+  if(!e||(jg.voltas||0)<e.venceVolta)return;
+  const casa=CASAS.find(c=>c.id===e.garantia), prop=j.props?.[e.garantia];
+  j.log=j.log||[];jg.transacoes=jg.transacoes||[];
+  if(jg.saldo>=e.divida){
+    jg.saldo-=e.divida;
+    if(prop)prop.hip=false;
+    jg.transacoes.push({desc:`Empréstimo pago — ${casa?.nome||'imóvel'}`,valor:e.divida,tipo:'saida',data:hoje()});
+    j.log.push({msg:`🏦 ${jg.nome} passou pelo INÍCIO e o banco descontou R$${e.divida} do empréstimo. ${casa?.nome||'Imóvel'} liberado!`,tipo:'lv'});
+    if(meuId===jg.id)toast(`🏦 O banco descontou R$${e.divida} do seu empréstimo.`);
+  }else{
+    if(prop){prop.dono=null;prop.casas=0;prop.hotel=false;prop.hip=false;}
+    jg.propriedades=(jg.propriedades||[]).filter(pid=>pid!==e.garantia);
+    j.log.push({msg:`🏦 ${jg.nome} não tinha R$${e.divida} para pagar o empréstimo: o banco ficou com ${casa?.nome||'o imóvel'}!`,tipo:'ls'});
+    if(meuId===jg.id)toast(`🏦 Sem dinheiro para o empréstimo: o banco ficou com ${casa?.nome||'o imóvel'}.`);
+  }
+  delete jg.emprestimo;
+  j.reciboN=(j.reciboN||0)+1;
+}
+
+// Caixa com o resumo do empréstimo, no topo da aba "Imóveis"
+function caixaEmp(eu){
+  const e=eu?.emprestimo;
+  if(!e)return '<div style="font-size:.7rem;color:var(--cinza2);margin-bottom:.5rem">🏦 Precisando de dinheiro? Use 🏦 em um imóvel para pedir um empréstimo com garantia.</div>';
+  const casa=CASAS.find(c=>c.id===e.garantia);
+  const pode=ehMinhaVez()&&eu.saldo>=e.divida;
+  return `<div style="background:var(--amarelo-bg);border:1px solid var(--amarelo);border-radius:10px;padding:.5rem .6rem;margin-bottom:.6rem;font-size:.76rem;line-height:1.5">
+    🏦 <strong>Empréstimo:</strong> você deve <strong>R$ ${e.divida},00</strong> (garantia: ${casa?casa.emoji+' '+escHtml(casa.nome):'imóvel'}).<br>
+    O banco cobra ao passar pelo INÍCIO na <strong>volta ${e.venceVolta}</strong>; sem dinheiro, ele fica com o imóvel.
+    ${pode?`<button class="ev-btn ev-btn2" style="font-size:.74rem;margin-top:.35rem" onclick="quitarEmprestimo()">💸 Quitar agora — R$ ${e.divida},00</button>`:''}
+  </div>`;
+}
+
+// =====================================================
 // LEVANTAR CAIXA — última chance antes da falência
 // =====================================================
 // Falir quem ainda tem imóvel para vender é injusto e ensina a lição errada.
@@ -2484,7 +2602,7 @@ function lcValorLiquidavel(jg,j){
   return (jg?.propriedades||[]).reduce((tot,pid)=>{
     const casa=CASAS.find(c=>c.id===pid);
     const prop=estado?.props?.[pid];
-    if(!casa||!prop)return tot;
+    if(!casa||!prop||prop.hip)return tot;   // imóvel em garantia de empréstimo não pode ser vendido
     const preco=casa.preco||0;
     let v=Math.floor(preco*.5);
     if(prop.hotel)v+=Math.floor(preco*.25)*5;   // hotel + as 4 casas que ele devolve
@@ -2516,18 +2634,21 @@ function renderLevantarCaixa(){
     const preco=casa.preco||0;
     const vProp=Math.floor(preco*.5);
     const temBenf=prop.hotel||prop.casas>0;
+    const hip=!!prop.hip;
     const vBenf=Math.floor(preco*.25);
     return `<div style="border:1px solid var(--linha);border-radius:10px;padding:.5rem .6rem;margin-bottom:.4rem">
       <div style="font-weight:700;font-size:.85rem;margin-bottom:.35rem">${casa.emoji} ${escHtml(casa.nome)} <span style="color:var(--cinza2);font-weight:400">— ${devLabel(prop)}</span></div>
-      ${temBenf?`<button class="ev-btn ev-btn2" style="font-size:.76rem;margin-bottom:.25rem" onclick="venderDesenvolvimento(${pid})">🏚️ Demolir benfeitoria — receber R$ ${vBenf},00</button>
+      ${hip?`<div style="font-size:.76rem;color:var(--amarelo)">🔒 Em garantia do empréstimo — não pode ser vendido nem demolido.</div>`:''}
+      ${!hip&&temBenf?`<button class="ev-btn ev-btn2" style="font-size:.76rem;margin-bottom:.25rem" onclick="venderDesenvolvimento(${pid})">🏚️ Demolir benfeitoria — receber R$ ${vBenf},00</button>
       <div style="font-size:.7rem;color:var(--amarelo);margin-bottom:.25rem">⚠️ Demolir antes de vender o imóvel rende mais.</div>`:''}
-      <button class="ev-btn ev-btn2" style="font-size:.76rem" onclick="venderProp(${pid})">💸 Vender imóvel ao banco — receber R$ ${vProp},00</button>
+      ${hip?'':`<button class="ev-btn ev-btn2" style="font-size:.76rem" onclick="venderProp(${pid})">💸 Vender imóvel ao banco — receber R$ ${vProp},00</button>`}
+      ${(!hip&&!jg.emprestimo)?`<button class="ev-btn ev-btn2" style="font-size:.76rem;margin-top:.25rem" onclick="tomarEmprestimo(${pid})">🏦 Empréstimo com garantia — receber R$ ${empPrincipal(casa,prop)},00 (devolver R$ ${empDivida(empPrincipal(casa,prop))},00)</button>`:''}
     </div>`;
   }).join('');
   box.innerHTML=`
     <p style="font-size:.85rem;line-height:1.55;margin-bottom:.6rem">
       Você precisa pagar <strong style="color:var(--vermelho)">R$ ${divida},00</strong> de aluguel,
-      mas tem <strong>R$ ${saldo},00</strong> em caixa. Venda parte do patrimônio para quitar.
+      mas tem <strong>R$ ${saldo},00</strong> em caixa. Venda parte do patrimônio ou peça um empréstimo com garantia de imóvel.
     </p>
     <div style="background:${quitado?'var(--verde)':'var(--vermelho)'}22;border:1px solid ${quitado?'var(--verde)':'var(--vermelho)'};border-radius:10px;padding:.5rem;text-align:center;font-weight:700;font-size:.85rem;margin-bottom:.6rem">
       ${quitado?'✅ Já dá para pagar!':`Ainda faltam R$ ${falta},00`}
@@ -2562,8 +2683,9 @@ async function executarFalencia(valorDivida){
   const j=JSON.parse(JSON.stringify(jogo));
   const jgR=j.jogadores?.[meuId];
   if(!jgR)return;
-  (jgR.propriedades||[]).forEach(pid=>{if(j.props[pid]){j.props[pid].dono=null;j.props[pid].casas=0;j.props[pid].hotel=false;}});
+  (jgR.propriedades||[]).forEach(pid=>{if(j.props[pid]){j.props[pid].dono=null;j.props[pid].casas=0;j.props[pid].hotel=false;j.props[pid].hip=false;}});
   jgR.propriedades=[];
+  delete jgR.emprestimo;
   jgR.ativo=false;
   fecharEvento(null);
   const el=document.getElementById('mod-faliu-m');
@@ -2593,7 +2715,7 @@ async function confirmarAluguel(){
     if(jgR.saldo<aluguelReal){
       // Antes de falir: o patrimônio dele cobre a dívida? Então NÃO é falência —
       // ele tem direito de vender imóvel ou demolir benfeitoria para pagar.
-      if(jgR.saldo+lcValorLiquidavel(jgR,j)>=aluguelReal){
+      if(jgR.saldo+lcMaxCapacidade(jgR,j)>=aluguelReal){
         aluguelPend=pend;          // devolve a pendência: a cobrança continua de pé
         abrirLevantarCaixa();
         return;
@@ -2674,6 +2796,7 @@ async function venderProp(id){
   const casa=CASAS.find(c=>c.id===id);
   const prop=j.props[id];
   if(!prop)return;
+  if(prop.hip){toast('🔒 Imóvel em garantia do empréstimo: quite a dívida antes de vender.');return;}
   const valorVenda=Math.floor((casa?.preco??prop?.preco??0)*0.5);
   jg.saldo+=valorVenda;
   jg.propriedades=jg.propriedades.filter(pid=>pid!==id);
@@ -2943,8 +3066,9 @@ function encerrar(){
   const ord=jogo.ordem.map(id=>{
     const jg=jogo.jogadores[id];
     const valorImoveis=(jg.propriedades||[]).reduce((s,pid)=>s+(jogo.props?.[pid]?.preco||0),0);
-    const patrimonio=jg.saldo+valorImoveis;
-    return {...jg,patrimonio,valorImoveis};
+    const divida=jg.emprestimo?.divida||0;   // empréstimo que ficou sem pagar é descontado do patrimônio
+    const patrimonio=jg.saldo+valorImoveis-divida;
+    return {...jg,patrimonio,valorImoveis,divida};
   }).sort((a,b)=>b.patrimonio-a.patrimonio);
 
   const vencedor=ord[0];
@@ -2958,7 +3082,7 @@ function encerrar(){
       <div class="rki-av" style="border-color:${jg.cor};background:${jg.cor}22">${jg.avatar}</div>
       <div class="rki-info">
         <div class="rki-nm">${escHtml(jg.nome||'')}</div>
-        <div class="rki-det">💰 R$${jg.saldo.toFixed(0)} + 🏠 R$${jg.valorImoveis.toFixed(0)} (${(jg.propriedades||[]).length} imóvel/is) = R$${jg.patrimonio.toFixed(0)} • ${jg.voltas} volta(s)</div>
+        <div class="rki-det">💰 R$${jg.saldo.toFixed(0)} + 🏠 R$${jg.valorImoveis.toFixed(0)} (${(jg.propriedades||[]).length} imóvel/is)${jg.divida?` − 🏦 R$${jg.divida.toFixed(0)} de empréstimo`:''} = R$${jg.patrimonio.toFixed(0)} • ${jg.voltas} volta(s)</div>
       </div>
       <div class="rki-s" style="color:${jg.cor}">R$ ${jg.patrimonio.toFixed(0)}</div>
     </div>`).join('');
@@ -3049,8 +3173,8 @@ function renderAba(t){
         const c=CASAS.find(x=>x.id===pid);
         const isMono=c?.grupo&&temMonopolio(id,c.grupo,j);
         return isMono
-          ?`<span class="mono-badge" title="Monopólio!">⭐${c.emoji}</span>`
-          :`<span class="pbadge" style="background:${c?.cor||'#888'}40;color:${c?.cor||'#888'}">${c?.emoji||'🏠'}</span>`;
+          ?`<span class="mono-badge" title="Monopólio!">⭐${c.emoji}${j.props?.[pid]?.hip?'🔒':''}</span>`
+          :`<span class="pbadge" style="background:${c?.cor||'#888'}40;color:${c?.cor||'#888'}" title="${j.props?.[pid]?.hip?'Em garantia de empréstimo':''}">${c?.emoji||'🏠'}${j.props?.[pid]?.hip?'🔒':''}</span>`;
       }).join('');
       const patrimonio=jg.saldo+(jg.propriedades||[]).reduce((s,pid)=>{return s+(j.props?.[pid]?.preco||0);},0);
       const hostBtns=isHost&&!isEu&&jg.ativo&&offline?`
@@ -3064,7 +3188,7 @@ function renderAba(t){
           <div style="flex:1;min-width:0">
             <div class="pjc-nome">${escHtml(jg.nome||'')}${isEu?' <span style="font-size:.6rem;color:var(--azul)">(você)</span>':''}
             ${!isEu&&offline?'<span class="disco-badge aguardando" title="Desconectado — aguardando reconexão">⚡ desconectado</span>':''}</div>
-            <div class="pjc-saldo" style="color:${jg.cor}">R$ ${jg.saldo.toFixed(0)} <span style="font-size:.6rem;color:var(--cinza2)">(+R$${(patrimonio-jg.saldo).toFixed(0)} imóveis)</span></div>
+            <div class="pjc-saldo" style="color:${jg.cor}">R$ ${jg.saldo.toFixed(0)} <span style="font-size:.6rem;color:var(--cinza2)">(+R$${(patrimonio-jg.saldo).toFixed(0)} imóveis)</span>${jg.emprestimo?` <span style="font-size:.6rem;color:var(--vermelho);font-weight:700">🏦 deve R$${jg.emprestimo.divida}</span>`:''}</div>
             <div class="pjc-pos">📍 ${CASAS[jg.posicao]?.nome||'—'} • ${jg.voltas}/${VOLTAS_PARA_FIM} voltas</div>
           </div>
           ${vez?'<span class="vez-tag">VEZ</span>':''}
@@ -3106,7 +3230,7 @@ function renderAba(t){
       body.innerHTML='<p style="font-size:.8rem;color:var(--cinza2);text-align:center;padding:1.5rem .5rem">Você ainda não tem imóveis.<br><span style="font-size:.72rem;opacity:.7">Caia em um terreno disponível para comprar!</span></p>';
       return;
     }
-    body.innerHTML=`<div style="font-size:.68rem;color:var(--cinza2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:.5rem">Meus imóveis (${minhasProps.length}) — 🏚️ vender por 50%</div>`+
+    body.innerHTML=`${caixaEmp(eu)}<div style="font-size:.68rem;color:var(--cinza2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:.5rem">Meus imóveis (${minhasProps.length}) — 🏚️ vender por 50%</div>`+
       minhasProps.map(prop=>{
         const casa=CASAS.find(c=>c.id===prop.id)||CASAS.find(c=>c.id===Number(prop.id));
         if(!casa) return ''; // prop sem casa correspondente — ignorar
@@ -3119,7 +3243,7 @@ function renderAba(t){
           </div>
           <div style="text-align:right">
             <div class="im-v" style="color:${casa.cor}">R$${casa.preco??prop.preco}</div>
-            ${minhaVez?`<button class="im-sell" onclick="venderProp(${casa.id})">🏚️ R$${Math.floor((casa.preco??prop.preco??0)*.5)}</button>`:''}
+            ${prop.hip?`<div style="font-size:.68rem;color:var(--amarelo);font-weight:700">🔒 em garantia</div>`:(minhaVez?`<button class="im-sell" onclick="venderProp(${casa.id})">🏚️ R$${Math.floor((casa.preco??prop.preco??0)*.5)}</button>${(!eu?.emprestimo)?` <button class="im-sell" title="Empréstimo com garantia" onclick="tomarEmprestimo(${casa.id})">🏦 R$${empPrincipal(casa,prop)}</button>`:''}`:'')}
           </div>
         </div>`;
       }).join('');
