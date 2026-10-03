@@ -1489,6 +1489,7 @@ function getPath(obj,path){
 // =====================================================
 let escutarChatOff = null;
 let _chatMsgs = [];
+let _chatRascunho = '';   // texto que a pessoa estava digitando
 
 function escutarChat(){
   if(escutarChatOff){escutarChatOff();escutarChatOff=null;}
@@ -1513,7 +1514,7 @@ function enviarChat(){
   if(!inp) return;
   const msg=inp.value.trim().slice(0,120);
   if(!msg) return;
-  inp.value='';
+  inp.value=''; _chatRascunho='';
   const eu=meuJog();
   if(!eu) return;
   const chatMsg={nome:eu.nome,avatar:eu.avatar,cor:eu.cor,msg,ts:Date.now()};
@@ -1521,8 +1522,9 @@ function enviarChat(){
     _chatMsgs.push(chatMsg);
     renderAba('chat'); return;
   }
-  db.ref('chats/'+codigoSala).push(chatMsg);
+  db.ref('chats/'+codigoSala).push(chatMsg).catch(e=>{console.warn('[chat] nao enviou',e&&e.message);inp.value=msg;_chatRascunho=msg;});
   snd('click');
+  inp.focus();
 }
 
 function escHtml(s){
@@ -3127,24 +3129,30 @@ function renderAba(t){
       '<p style="font-size:.76rem;color:var(--cinza2)">Nenhum evento.</p>';
 
   } else if(t==='chat'){
+    // a caixa de digitacao NAO pode ser refeita a cada mensagem ou atualizacao do jogo (tirava o cursor e o texto de quem escreve)
+    let wrap=document.getElementById('chat-msgs-wrap');
+    const primeira=!wrap||!document.getElementById('chat-inp');
+    if(primeira){
+      body.innerHTML=`
+      <div id="chat-msgs-wrap" style="margin-bottom:.5rem;max-height:360px;overflow-y:auto"></div>
+      <div class="chat-row">
+        <input class="sinp" id="chat-inp" placeholder="Mensagem..." maxlength="120"
+          onkeydown="if(event.key==='Enter')enviarChat()" oninput="_chatRascunho=this.value" style="margin:0;flex:1;padding:.4rem .6rem;font-size:.8rem">
+        <button class="chat-send" onclick="enviarChat()">→</button>
+      </div>`;
+      wrap=document.getElementById('chat-msgs-wrap');
+      const inp0=document.getElementById('chat-inp'); if(inp0) inp0.value=_chatRascunho||'';
+    }
     const msgs=_chatMsgs||[];
-    body.innerHTML=`
-      <div id="chat-msgs-wrap" style="margin-bottom:.5rem;max-height:360px;overflow-y:auto">
-        ${msgs.length?msgs.map(m=>`
+    const colado=primeira||(wrap.scrollHeight-wrap.scrollTop-wrap.clientHeight<40);   // so rola para o fim se a pessoa ja estava no fim
+    wrap.innerHTML=msgs.length?msgs.map(m=>`
           <div class="chat-msg" style="border-left-color:${m.cor}">
             <span class="chat-av">${m.avatar}</span>
             <div><span class="chat-nm" style="color:${m.cor}">${escHtml(m.nome)}</span>
             <span class="chat-txt">${escHtml(m.msg)}</span></div>
           </div>`).join('')
-          :'<p style="font-size:.76rem;color:var(--cinza2);margin-bottom:.5rem">Sem mensagens ainda. Diga oi! 👋</p>'}
-      </div>
-      <div class="chat-row">
-        <input class="sinp" id="chat-inp" placeholder="Mensagem..." maxlength="120"
-          onkeydown="if(event.key==='Enter')enviarChat()" style="margin:0;flex:1;padding:.4rem .6rem;font-size:.8rem">
-        <button class="chat-send" onclick="enviarChat()">→</button>
-      </div>`;
-    const wrap=document.getElementById('chat-msgs-wrap');
-    if(wrap) wrap.scrollTop=wrap.scrollHeight;
+          :'<p style="font-size:.76rem;color:var(--cinza2);margin-bottom:.5rem">Sem mensagens ainda. Diga oi! 👋</p>';
+    if(colado) wrap.scrollTop=wrap.scrollHeight;
   }
 }
 
