@@ -8,8 +8,10 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<!--COMPLETO-->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<!--/COMPLETO-->
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -533,7 +535,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
         <div class="logo-sub">🎓 EDUCAÇÃO FINANCEIRA</div>
       </div>
     </div>
-    <div class="badge-free">🆓 100% GRATUITO • ESCOLAS MUNICIPAIS DE BC</div>
+    <!--COMPLETO--><div class="badge-free">🆓 100% GRATUITO • ESCOLAS MUNICIPAIS DE BC</div><!--/COMPLETO-->
   </div>
   <div class="lbox">
     <div class="lbox-t">👤 Quem é você?</div>
@@ -734,6 +736,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--texto);min
 // =====================================================
 // FIREBASE CONFIG
 // =====================================================
+/*COMPLETO*/
 const FB_CONFIG = {
   apiKey: "AIzaSyBR-LXbkYPH_X6UyeO2KpQRzf7g5pLgug0",
   authDomain: "jogo-monetario.firebaseapp.com",
@@ -743,8 +746,12 @@ const FB_CONFIG = {
   messagingSenderId: "743932708760",
   appId: "1:743932708760:web:5549060ad9319618470ded"
 };
+/*/COMPLETO*/
 
-const VOLTAS_PARA_FIM = 3;   // quem completar essa quantidade de voltas primeiro encerra o jogo
+// demonstracao: o venda.js so existe nela (o build do site poe antes deste script); ela nao carrega o Firebase
+// (as marcas COMPLETO tiram o SDK e a configuracao) e so tem a partida sozinha, de 1 volta
+const PREVIA = typeof EJAVenda !== 'undefined';
+const VOLTAS_PARA_FIM = PREVIA ? 1 : 3;   // quem completar essa quantidade de voltas primeiro encerra o jogo
 let MODO_DEMO = false;
 let db = null;
 let codigoSala = null;
@@ -786,7 +793,18 @@ function getDeviceId(){
   return id;
 }
 
-try {
+if(PREVIA){
+  MODO_DEMO = true;   // sem Firebase: so a partida sozinha, na camada local
+  document.getElementById('loading').style.display = 'none';
+  irTela('tela-lobby');
+  document.querySelector('.btn-criar').append(' 🔒');
+  document.querySelector('.btn-entrar').append(' 🔒');
+  const aviso = document.createElement('div');
+  aviso.style.cssText = 'font-size:.8rem;color:var(--amarelo);text-align:center;margin:.2rem 0 .6rem';
+  aviso.className = 'aviso-previa';
+  aviso.textContent = 'Demonstração: partida sozinha de 1 volta. 🔒 = salas com a turma, só no jogo completo.';
+  document.querySelector('.btn-criar').closest('.lbox').before(aviso);
+} else try {
   firebase.initializeApp(FB_CONFIG);
   db = firebase.database();
   document.getElementById('loading').style.display = 'none';
@@ -1555,6 +1573,7 @@ function gerarCodigo(){
 function hoje(){return new Date().toLocaleDateString('pt-BR');}
 
 async function criarSala(){
+  if(PREVIA){EJAVenda.mostrar('recurso');return;}   // sala com a turma e do jogo completo
   const nome=document.getElementById('l-nome').value.trim()||'Professor';
   meuId='host_'+Date.now();
   codigoSala=gerarCodigo();
@@ -1569,6 +1588,7 @@ async function criarSala(){
 }
 
 async function entrarSala(){
+  if(PREVIA){EJAVenda.mostrar('recurso');return;}   // entrar em sala da turma e do jogo completo
   const nome=document.getElementById('l-nome').value.trim()||'Aluno';
   const cod=document.getElementById('l-codigo').value.trim().toUpperCase();
   if(!cod||cod.length!==6){toast('⚠️ Digite o código de 6 caracteres!');return;}
@@ -1851,7 +1871,7 @@ function renderBoard(){
   <text x="350" y="350" text-anchor="middle" font-family="Fredoka One,cursive" font-size="26" fill="#3DB8FF" opacity=".9">BALNEÁRIO!</text>
   <text x="350" y="372" text-anchor="middle" font-family="Nunito,sans-serif" font-size="10" fill="#00E5A0" font-weight="700">💰 EDUCAÇÃO FINANCEIRA</text>
   <text x="350" y="388" text-anchor="middle" font-family="Nunito,sans-serif" font-size="8.5" fill="#3DB8FF" opacity=".6">Balneário Camboriú • SC • BNCC</text>
-  <text x="350" y="404" text-anchor="middle" font-family="Nunito,sans-serif" font-size="9.5" fill="#FFD23F" opacity=".8">🏆 ${VOLTAS_PARA_FIM} VOLTAS PARA VENCER</text>
+  <text x="350" y="404" text-anchor="middle" font-family="Nunito,sans-serif" font-size="9.5" fill="#FFD23F" opacity=".8">🏆 ${VOLTAS_PARA_FIM} ${VOLTAS_PARA_FIM===1?'VOLTA':'VOLTAS'} PARA VENCER</text>
   <text x="350" y="420" text-anchor="middle" font-family="Nunito,sans-serif" font-size="8" fill="#B08FFF" opacity=".7">⭐ GRUPO COMPLETO = ALUGUEL 2×</text>`;
 
   CASAS.forEach(c=>{
@@ -3097,6 +3117,7 @@ function encerrar(){
   pararVerificacaoDesconectados();
   limparSessao();
   irTela('tela-fim');
+  if(PREVIA)setTimeout(()=>EJAVenda.mostrar('fim'),2500);   // demonstracao: depois do ranking, a tela de venda
 }
 
 // =====================================================
@@ -3441,6 +3462,7 @@ async function confirmarRemocaoOffline(){
 
 // ─── Verificar sessão salva ao carregar página ───────
 (function verificarSessaoSalva(){
+  if(PREVIA)return;   // a demonstracao nao tem sala para voltar
   const sessao=carregarSessao();
   if(!sessao)return;
   const box=document.getElementById('box-reconectar');
